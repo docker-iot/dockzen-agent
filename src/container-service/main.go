@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-//var wss_server_url = "ws://10.113.62.204:4000"
-//var wss_server_origin = "ws://10.113.62.204:4000"
+var wss_server_url = "ws://10.113.62.204:4000"
+var wss_server_origin = "ws://10.113.62.204:4000"
 
-var wss_server_url = "ws://13.124.64.10:4000"
-var wss_server_origin = "ws://13.124.64.10:4000"
+//var wss_server_url = "ws://13.124.64.10:4000"
+//var wss_server_origin = "ws://13.124.64.10:4000"
 
 type Command struct {
 	Cmd string `json:"cmd"`
