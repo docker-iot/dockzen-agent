@@ -8,31 +8,11 @@
 			"branch": "master"
 		},
 		{
-			"importpath": "github.com/Sirupsen/logrus",
-			"repository": "https://github.com/Sirupsen/logrus",
-			"revision": "10f801ebc38b33738c9d17d50860f484a0988ff5",
-			"branch": "master"
-		},
-		{
 			"importpath": "github.com/docker/docker/pkg/jsonlog",
 			"repository": "https://github.com/docker/docker",
 			"revision": "a9ff628a3c7c55cf016af88f37c4fb6a6029e17a",
 			"branch": "master",
 			"path": "/pkg/jsonlog"
-		},
-		{
-			"importpath": "github.com/docker/docker/pkg/jsonmessage",
-			"repository": "https://github.com/docker/docker",
-			"revision": "a9ff628a3c7c55cf016af88f37c4fb6a6029e17a",
-			"branch": "master",
-			"path": "/pkg/jsonmessage"
-		},
-		{
-			"importpath": "github.com/docker/docker/pkg/progress",
-			"repository": "https://github.com/docker/docker",
-			"revision": "a9ff628a3c7c55cf016af88f37c4fb6a6029e17a",
-			"branch": "master",
-			"path": "/pkg/progress"
 		},
 		{
 			"importpath": "github.com/docker/docker/pkg/term",
@@ -58,6 +38,12 @@
 			"importpath": "github.com/gorilla/mux",
 			"repository": "https://github.com/gorilla/mux",
 			"revision": "599cba5e7b6137d46ddf58fb1765f5d928e69604",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/rcrowley/goagain",
+			"repository": "https://github.com/rcrowley/goagain",
+			"revision": "f2f192b5d1a96e21dd4026ce67cda85e49659a48",
 			"branch": "master"
 		},
 		{

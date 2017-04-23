@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-var wss_server_url = "ws://10.113.62.204:4000"
-var wss_server_origin = "ws://10.113.62.204:4000"
+//var wss_server_url = "ws://10.113.62.204:4000"
+//var wss_server_origin = "ws://10.113.62.204:4000"
 
-//var wss_server_url = "ws://13.124.64.10:4000"
-//var wss_server_origin = "ws://13.124.64.10:4000"
+var wss_server_url = "ws://13.124.64.10:4000"
+var wss_server_origin = "ws://13.124.64.10:4000"
 
 type Command struct {
 	Cmd string `json:"cmd"`
@@ -101,7 +101,7 @@ func ClientFunction() (err error) {
 			wsSendContainerLists(ws)
 		case "UpdateImage":
 			log.Printf("command <UpdateImage>")
-			wsSendUpdateImage(ws, parseUpdateParam([]byte(msg)))
+			wsSendUpdateImage(ws, parseUpdateParam(msg))
 		default:
 			log.Printf("add command of {%s}", rcv.Cmd)
 		}
@@ -176,7 +176,6 @@ func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 		ContainerName: data.ContainerName,
 	}
 	send, err1 := client.UpdateImage(param)
-	//send, err := csaapi.UpdateImage(param)
 
 	if err1 != nil {
 		log.Printf("error = ", err1)
@@ -189,7 +188,7 @@ func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 	return nil
 }
 
-func parseUpdateParam(msg []byte) UpdateParam {
+func parseUpdateParam(msg string) UpdateParam {
 	send := UpdateParam{}
 	json.Unmarshal([]byte(msg), &send)
 	fmt.Println("parsing ContainerName: " + send.ContainerName)

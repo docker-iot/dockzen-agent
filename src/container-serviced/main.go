@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"csaapi"
+ 	"csaapi"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -17,34 +17,36 @@ import (
 )
 
 const (
-	MaxCommandLength int = 10
+	DockerLauncherSocket   string = "/var/run/docker_launcher.sock"
+    maxQueue int = 1
 )
 
-// APIResponse The api response sent from go supervisor
-type APIResponse struct {
-	Data  interface{}
-	Error string
+var respQueue chan Response
+
+
+type Dispatcher struct {
+	workerPool chan chan Request
+	req chan Request
 }
 
-func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
-	jsonBody, err := json.Marshal(response)
-	if err != nil {
-		log.Printf("Could not marshal JSON for %+v\n", response)
-	}
-	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(status)
-	writer.Write(jsonBody)
+type Worker struct {
+	req chan Request
+	workerPool chan chan Request
+	quitChan chan bool
 }
 
-func responseSenders(writer http.ResponseWriter) (sendResponse func(interface{}, string, int), sendError func(error)) {
-	sendResponse = func(data interface{}, errorMsg string, statusCode int) {
-		jsonResponse(writer, APIResponse{data, errorMsg}, statusCode)
-	}
-	sendError = func(err error) {
-		sendResponse("Error", err.Error(), http.StatusInternalServerError)
-	}
-	return
+type Response struct {
+	Num int
+	Command string
+	Body []byte
 }
+
+type Request struct {
+	Num int
+	Command string
+	HttpReq *http.Request
+}
+
 
 func getDockerLauncherInfo_Stub() dockerlauncher.GetContainersInfoReturn {
 	send := dockerlauncher.GetContainersInfoReturn{
@@ -75,19 +77,20 @@ func updateImage_Stub() dockerlauncher.UpdateImageReturn {
 	return send
 }
 
+
 func getContainersInfo() ([]byte, error) {
 	log.Printf("getContainersInfo")
-
-	/*stub := getDockerLauncherInfo_Stub()
+/*
+	stub := getDockerLauncherInfo_Stub()
 	var send_stub []byte
 
 	send_stub, _ = json.Marshal(stub)
 	log.Printf(string(send_stub))
 
 	return send_stub, nil
-	*/
+*/	
 	var send_str []byte
-	c, err := net.Dial("unix", csaapi.DockerLauncherSocket)
+	c, err := net.Dial("unix", DockerLauncherSocket)
 	if err != nil {
 		log.Fatal("Dial error", err)
 		return send_str, nil
@@ -155,17 +158,17 @@ func getContainersInfo() ([]byte, error) {
 
 func updateImageRequest(ImageName, ContainerName string) ([]byte, error) {
 	log.Printf("updateImageRequest")
-
-	/*stub := updateImage_Stub()
+/*
+	stub := updateImage_Stub()
 	var send_stub []byte
 
 	send_stub, _ = json.Marshal(stub)
 	log.Printf(string(send_stub))
 
 	return send_stub, nil
-	*/
+*/	
 	var send_str []byte
-	c, err := net.Dial("unix", csaapi.DockerLauncherSocket)
+	c, err := net.Dial("unix", DockerLauncherSocket)
 	if err != nil {
 		log.Fatal("Dial error", err)
 		return send_str, nil
@@ -252,80 +255,208 @@ func parseUpdateImageParam(request *http.Request) (ImageName, ContainerName stri
 	return ImageName, ContainerName, err
 }
 
-func GetContainersInfoHandler(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("Enter GetContainersInfoHandler")
+func apiGetHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, resps chan Response) {
+    vars := mux.Vars(r)
+    Cmd := vars["command"]
+    log.Printf("command: [%s]", Cmd)
+   
+   	// num is always 1, because, request will be handled the earier one is finished
+    req := Request{Command: Cmd, Num : 1, HttpReq: r}  
+    
+    reqs <- req
+   	
+   	currentReqNum := 1
+	var respData Response
+	for{
+		respData = <-respQueue
+		if currentReqNum == respData.Num {
+			fmt.Printf("done: [%d]\n",currentReqNum)
+			break
+		}
+	}
 
-	if containersInfo, err := getContainersInfo(); err != nil {
-		log.Printf("Error GetContainersInfoHandler[%s]", err)
-		writer.WriteHeader(http.StatusInternalServerError)
+	// Make resps
+	w.Header().Set("Content-Type", "application/json")
+	if respData.Command == "getContainersInfo"  {
+		w.WriteHeader(http.StatusOK)
+		w.Write(respData.Body)
 	} else {
-		log.Printf("Success GetContainersInfoHandler")
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusOK)
-		writer.Write(containersInfo)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
+
+	log.Println("Complete RequestHandler\n")
+    return
 }
 
-func UpdateImageHandler(writer http.ResponseWriter, request *http.Request) {
-	log.Printf("Enter UpdateImageHandler")
-
-	imageName, containerName, err := parseUpdateImageParam(request)
-	if err != nil {
-		log.Printf("Error here [%s]", err)
+func apiPostHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, resps chan Response) {
+    vars := mux.Vars(r)
+    Cmd := vars["command"]
+    log.Printf("command: [%s]", Cmd)
+   
+   	// num is always 1, because, request will be handled the earier one is finished
+    req := Request{Command: Cmd, Num : 1, HttpReq: r}  
+    
+    reqs <- req
+   	
+   	currentReqNum := 1
+	var respData Response
+	for{
+		respData = <-respQueue
+		if currentReqNum == respData.Num {
+			fmt.Printf("done: [%d]\n",currentReqNum)
+			break
+		}
 	}
-	if updateImageState, err := updateImageRequest(imageName, containerName); err != nil {
-		log.Printf("Error UpdateImageHandler[%s]", err)
-		writer.WriteHeader(http.StatusInternalServerError)
+
+	// Make resps
+	w.Header().Set("Content-Type", "application/json")
+	if respData.Command == "updateImage" {
+		w.WriteHeader(http.StatusOK)
+		w.Write(respData.Body)
 	} else {
-		log.Printf("Success UpdateImageHandler")
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusOK)
-		writer.Write(updateImageState)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 
+	log.Println("Complete RequestHandler\n")
+    return
 }
 
-func htmlHandler(writer http.ResponseWriter, request *http.Request) {
-	fmt.Fprintln(writer, "OK")
+func NewWorker(workerPool chan chan Request) Worker {
+	return Worker{
+		req: make(chan Request),
+		workerPool: workerPool,
+		quitChan: make(chan bool),
+	}
 }
 
-func setupApi(r *mux.Router) {
-	r.PathPrefix("/").
-		Path("/ping").
-		Methods("GET").
-		HandlerFunc(htmlHandler)
+func (w Worker) start(){
+	go func(){
+		for{
+			w.workerPool <- w.req
+
+			select{
+			case req := <- w.req:
+				switch req.Command{
+				case "getContainersInfo":
+					containersInfo, err := getContainersInfo() 
+					if err != nil {
+						respQueue <- Response{req.Num, "Error", nil}
+					} else {
+						respQueue <- Response{req.Num, req.Command, containersInfo}
+					}
+
+				case "updateImage":
+					imageName, containerName, err := parseUpdateImageParam(req.HttpReq)
+					if err != nil {
+						log.Printf("Error [%s]", err)
+						respQueue <- Response{req.Num, "Error", nil}
+					} else {
+						updateImageState, err := updateImageRequest(imageName, containerName)
+						if err != nil {
+							log.Printf("Error [%s]", err)
+							respQueue <- Response{req.Num, "Error", nil}
+						} else {
+							respQueue <- Response{req.Num, req.Command, updateImageState}
+						}
+					}
+			}
+
+			log.Printf("Completed\n")
+			case <- w.quitChan:
+				log.Printf("worker stopping\n")
+				return
+			}
+		}
+	}()
+}
+
+func (w Worker) stop(){
+	go func() {
+		w.quitChan <- true
+	}()
+}
+
+func NewDispatcher(req chan Request) *Dispatcher {
+	workerpool := make(chan chan Request, 1)
+
+	return &Dispatcher{
+		req: req,
+		workerPool: workerpool,
+	}
+}
+
+func (d *Dispatcher) run () {
+	woker := NewWorker(d.workerPool)
+	woker.start()
+
+	go d.dispatch()
+}
+																																																																																																																																															
+func (d *Dispatcher) dispatch(){
+	for {
+		select{
+		case req := <- d.req:
+			go func(){
+				log.Printf("fetching workerRequest for : %d\n", req.Num)
+				workerRequest := <- d.workerPool
+				log.Printf("adding [%d] to workerRequest\n", req.Num)			
+				workerRequest <- req
+				}()
+		}
+	}
+}
+
+func setupApi(r *mux.Router, req chan Request, resp chan Response) {
 
 	s := r.PathPrefix("/v1").Subrouter()
-	s.HandleFunc("/getContainersInfo", GetContainersInfoHandler).Methods("GET")
-	s.HandleFunc("/updateImage", UpdateImageHandler).Methods("POST")
+	s.HandleFunc("/get/{command}", func(w http.ResponseWriter, r *http.Request){
+		apiGetHandler(w, r, req, resp)}).Methods("GET")
+	s.HandleFunc("/post/{command}", func(w http.ResponseWriter, r *http.Request){
+		apiPostHandler	(w, r, req, resp)}).Methods("POST")
 }
 
 func main() {
 	log.Printf("Container-Service Agent starting")
+
+	reqQueue := make(chan Request, maxQueue)
+	defer close(reqQueue)
+
+	respQueue = make(chan Response, maxQueue)
+	defer close(respQueue)
+
+	dispatcher := NewDispatcher(reqQueue)
+	dispatcher.run()
+
 	listenAddress := csaapi.ContainerServiceSocket
 	router := mux.NewRouter()
-	setupApi(router)
+	setupApi(router, reqQueue, respQueue)
 
-	if listener, err := net.Listen("unix", listenAddress); err != nil {
+
+	listener, err := net.Listen("unix", listenAddress); 
+
+	if err != nil {
 		log.Fatalf("Could not listen on %s: %v", listenAddress, err)
 		return
-	} else {
-
-		defer listener.Close()
-
-		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGKILL)
-		go func(c chan os.Signal) {
-			sig := <-c
-			log.Printf("Caught signal %s: shutting down.", sig)
-			listener.Close()
-			os.Exit(0)
-		}(sigc)
-
-		log.Printf("Starting HTTP server on %s\n", listenAddress)
-		if err = http.Serve(listener, router); err != nil {
-			log.Fatalf("Could not start HTTP server: %v", err)
-		}
 	}
 
+	defer listener.Close()
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc,
+    syscall.SIGHUP,
+    syscall.SIGINT,
+    syscall.SIGTERM,
+    syscall.SIGQUIT)
+
+	go func(listener net.Listener, c chan os.Signal) {
+			sig := <-c
+			listener.Close()
+			log.Printf("Caught signal %s: shutting down.", sig)
+			os.Exit(0)
+		}(listener, sigc)
+
+
+	log.Printf("Starting HTTP server on %s\n", listenAddress)
+	if err = http.Serve(listener, router); err != nil {
+		log.Fatalf("Could not start HTTP server: %v", err)
+	}
 }

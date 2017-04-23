@@ -17,10 +17,8 @@ import (
 
 const (
 	ContainerServiceSocket string = "/var/run/container_service.sock"
-	DockerLauncherSocket   string = "/var/run/docker_launcher.sock"
+    defaultTimeout = 30 * time.Second
 )
-
-const defaultTimeout = 30 * time.Second
 
 type CSAClient struct {
 	Path       string
@@ -108,7 +106,7 @@ func (client *CSAClient) GetContainersInfo() (csac.ContainerLists, error) {
 
 	var send csac.ContainerLists
 
-	contents, err := client.doRequest("GET", "/v1/getContainersInfo", "")
+	contents, err := client.doRequest("GET", "/v1/get/getContainersInfo", "")
 
 	if err != nil {
 		log.Printf("error [%s]", err)
@@ -151,7 +149,7 @@ func (client *CSAClient) UpdateImage(data csac.UpdateImageParams) (csac.UpdateIm
 	send_str, _ := json.Marshal(data)
 	fmt.Println(string(send_str))
 
-	contents, err := client.doRequest("POST", "/v1/updateImage", string(send_str))
+	contents, err := client.doRequest("POST", "/v1/post/updateImage", string(send_str))
 
 	if err != nil {
 		log.Printf("error [%s]", err)
