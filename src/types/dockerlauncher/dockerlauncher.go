@@ -25,7 +25,7 @@ type UpdateParam struct {
 
 type UpdateImageParameters struct {
 	Command string      `json:"command"`
-	Param   UpdateParam `json:"updateParam'`
+	Param   UpdateParam `json:"updateParam"`
 }
 
 type GetContainersInfoReturn struct {

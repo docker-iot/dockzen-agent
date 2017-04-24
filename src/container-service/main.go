@@ -120,7 +120,7 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 			ws, err = ProxyDial(wss_server_url, "tcp", wss_server_origin)
 
 			if err != nil {
-				log.Printf("ProxyDial : ", err)
+				log.Printf("ProxyDial : %s ", err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -131,13 +131,14 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 	for {
 		err = websocket.Message.Receive(ws, &read_buf)
 		if err != nil {
-			log.Println("wsReceive : ", err)
+			log.Printf("wsReceive : %s", err)
 			syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
-			return err
+			break
 		}
 		log.Printf("received: %s", read_buf)
 		chan_msg <- read_buf
 	}
+
 	return err
 }
 
@@ -146,17 +147,17 @@ func wsSendContainerLists(ws *websocket.Conn) (err error) {
 	client, err := csaapi.NewCSAClient()
 
 	if err != nil {
-		log.Printf("error = ", err)
+		log.Printf("error = %s", err)
 		return err
 	}
 
 	send, err1 := client.GetContainersInfo()
 
 	if err1 != nil {
-		log.Printf("error = ", err1)
+		log.Printf("error = %s", err1)
 		return err1
 	} else {
-		log.Printf("send = ", send)
+		log.Printf("send = %s", send)
 		websocket.JSON.Send(ws, send)
 	}
 	return nil
@@ -167,7 +168,7 @@ func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 	client, err := csaapi.NewCSAClient()
 
 	if err != nil {
-		log.Printf("error = ", err)
+		log.Printf("error = %s", err)
 		return err
 	}
 
@@ -178,10 +179,10 @@ func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 	send, err1 := client.UpdateImage(param)
 
 	if err1 != nil {
-		log.Printf("error = ", err1)
+		log.Printf("error = %s", err1)
 		return err1
 	} else {
-		log.Printf("send = ", send)
+		log.Printf("send = %s", send)
 		websocket.JSON.Send(ws, send)
 	}
 
@@ -293,13 +294,13 @@ func ProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) {
 }
 
 func HttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
-	log.Printf("proxy =", proxy)
+	log.Println("proxy =", proxy)
 	proxy_tcp_conn, err := net.Dial("tcp", proxy)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("proxy_tcp_conn =", proxy_tcp_conn)
-	log.Printf("url_ =", url_)
+	log.Println("proxy_tcp_conn =", proxy_tcp_conn)
+	log.Println("url_ =", url_)
 
 	turl, err := url.Parse(url_)
 	if err != nil {
@@ -308,7 +309,7 @@ func HttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 		return nil, err
 	}
 
-	log.Printf("proxy turl.Host =", string(turl.Host))
+	log.Println("proxy turl.Host =", string(turl.Host))
 
 	req := http.Request{
 		Method: "CONNECT",
@@ -319,7 +320,7 @@ func HttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 	proxy_http_conn := httputil.NewProxyClientConn(proxy_tcp_conn, nil)
 	//cc := http.NewClientConn(proxy_tcp_conn, nil)
 
-	log.Printf("proxy_http_conn =", proxy_http_conn)
+	log.Println("proxy_http_conn =", proxy_http_conn)
 
 	resp, err := proxy_http_conn.Do(&req)
 	if err != nil && err != httputil.ErrPersistEOF {
@@ -327,7 +328,7 @@ func HttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
-	log.Printf("proxy_http_conn<resp> =", (resp))
+	log.Println("proxy_http_conn<resp> =", (resp))
 
 	rwc, _ := proxy_http_conn.Hijack()
 

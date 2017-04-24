@@ -60,20 +60,24 @@ func (client *CSAClient) doRequest(method string, path string, body string) ([]b
 		return nil, errors.New("Invaild Method")
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
 	if resp.StatusCode == 200 {
 		defer resp.Body.Close()
 		contents, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("error =%s\n", err)
 		}
 
 		return contents, err
+
 	} else {
 		log.Printf("Error  : [%d]\n", resp.StatusCode)
-		return nil, errors.New(string(resp.StatusCode))
 	}
 
-	return nil, err
+	return nil, errors.New(string(resp.StatusCode))
 }
 
 func GetHardwareAddress() (string, error) {
