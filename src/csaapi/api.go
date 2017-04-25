@@ -17,7 +17,7 @@ import (
 
 const (
 	ContainerServiceSocket string = "/var/run/container_service.sock"
-    defaultTimeout = 30 * time.Second
+	defaultTimeout                = 30 * time.Second
 )
 
 type CSAClient struct {
@@ -124,25 +124,28 @@ func (client *CSAClient) GetContainersInfo() (csac.ContainerLists, error) {
 	log.Printf("numOfList[%d]\n", numOfList)
 
 	send.Cmd = "GetContainersInfo"
-	send.ContainerCount = numOfList
 
 	macaddress, err := GetHardwareAddress()
 
 	send.DeviceID = macaddress
 	log.Printf("send.DeviceID[%s]\n", send.DeviceID)
+	var containerValue csac.ContainerInfo
 
 	for i := 0; i < numOfList; i++ {
-		var containerValue = csac.ContainerInfo{
-			ContainerName:   lists.Containers[i].ContainerName,
-			ImageName:       lists.Containers[i].ImageName,
-			ContainerStatus: lists.Containers[i].ContainerStatus,
+		if lists.Containers[i].ContainerName != "" && lists.Containers[i].ImageName != "" {
+			containerValue = csac.ContainerInfo{
+				ContainerName:   lists.Containers[i].ContainerName,
+				ImageName:       lists.Containers[i].ImageName,
+				ContainerStatus: lists.Containers[i].ContainerStatus,
+			}
+			send.ContainerCount++
 		}
 
 		send.Container = append(send.Container, containerValue)
 		log.Printf("[%d]-[%s]", i, send.Container)
 	}
-
-	log.Printf("[%s]", send)
+	log.Printf("Container Count [%d]\n", send.ContainerCount)
+	log.Printf("[%s]\n", send)
 
 	return send, nil
 }
