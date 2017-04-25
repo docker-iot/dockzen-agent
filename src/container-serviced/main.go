@@ -163,7 +163,7 @@ func updateImage_Stub() dockerlauncher.UpdateImageReturn {
 	return send
 }
 
-func getContainersInfo2() ([]byte, error) {
+func getContainersInfo() ([]byte, error) {
 	log.Printf("getContainersInfo")
 	/*
 		stub := getDockerLauncherInfo_Stub()
@@ -199,85 +199,7 @@ func getContainersInfo2() ([]byte, error) {
 	return data, nil
 }
 
-func getContainersInfo() ([]byte, error) {
-	log.Printf("getContainersInfo")
-	/*
-		stub := getDockerLauncherInfo_Stub()
-		var send_stub []byte
-
-		send_stub, _ = json.Marshal(stub)
-		log.Printf(string(send_stub))
-
-		return send_stub, nil
-	*/
-	var send_str []byte
-	c, err := net.Dial("unix", DockerLauncherSocket)
-	if err != nil {
-		log.Fatal("Dial error", err)
-		return send_str, nil
-	}
-
-	defer c.Close()
-
-	send := dockerlauncher.Cmd{}
-	send.Command = "GetContainersInfo"
-
-	send_str, _ = json.Marshal(send)
-	log.Printf(string(send_str))
-
-	length := len(send_str)
-
-	message := make([]byte, 0, length)
-	message = append(message, send_str...)
-
-	_, err = c.Write([]byte(message))
-	if err != nil {
-		log.Printf("error: %v\n", err)
-	}
-
-	log.Printf("sent: %s\n", message)
-	err = c.(*net.UnixConn).CloseWrite()
-	if err != nil {
-		log.Printf("error: %v\n", err)
-
-	}
-
-	data := make([]byte, 0)
-	for {
-		dataBuf := make([]byte, 1024)
-		nr, err := c.Read(dataBuf)
-		if err != nil {
-			break
-		}
-
-		log.Printf("nr size [%d]", nr)
-		if nr == 0 {
-			break
-		}
-
-		dataBuf = dataBuf[:nr]
-		data = append(data, dataBuf...)
-	}
-	log.Printf("receive data[%s]\n", string(data))
-	//delete null character
-	withoutNull := bytes.Trim(data, "\x00")
-
-	rcv := dockerlauncher.Cmd{}
-	err = json.Unmarshal([]byte(withoutNull), &rcv)
-	log.Printf("rcv.Command = %s", rcv.Command)
-
-	if rcv.Command == "GetContainersInfo" {
-		log.Printf("Success\n")
-		return withoutNull, nil
-	} else {
-		log.Printf("error commnad[%s]\n", err)
-	}
-
-	log.Printf("end\n")
-	return send_str, nil
-}
-
-func updateImageRequest2(request *http.Request) ([]byte, error) {
+func updateImageRequest(request *http.Request) ([]byte, error) {
 	log.Printf("updateImageRequest")
 	/*
 		stub := updateImage_Stub()
@@ -321,89 +243,6 @@ func updateImageRequest2(request *http.Request) ([]byte, error) {
 
 	log.Printf("end\n")
 	return data, nil
-}
-
-func updateImageRequest(ImageName, ContainerName string) ([]byte, error) {
-	log.Printf("updateImageRequest")
-	/*
-		stub := updateImage_Stub()
-		var send_stub []byte
-
-		send_stub, _ = json.Marshal(stub)
-		log.Printf(string(send_stub))
-
-		return send_stub, nil
-	*/
-	var send_str []byte
-	c, err := net.Dial("unix", DockerLauncherSocket)
-	if err != nil {
-		log.Fatal("Dial error", err)
-		return send_str, nil
-	}
-
-	defer c.Close()
-
-	send := dockerlauncher.UpdateImageParameters{}
-	send.Command = "UpdateImage"
-
-	send.Param = dockerlauncher.UpdateParam{
-		ContainerName: ContainerName,
-		ImageName:     ImageName,
-	}
-
-	send_str, _ = json.Marshal(send)
-	log.Printf(string(send_str))
-
-	length := len(send_str)
-
-	message := make([]byte, 0, length)
-	message = append(message, send_str...)
-
-	_, err = c.Write([]byte(message))
-	if err != nil {
-		log.Printf("error: %v\n", err)
-	}
-
-	log.Printf("sent: %s\n", message)
-	err = c.(*net.UnixConn).CloseWrite()
-	if err != nil {
-		log.Printf("error: %v\n", err)
-
-	}
-
-	data := make([]byte, 0)
-	for {
-		dataBuf := make([]byte, 1024)
-		nr, err := c.Read(dataBuf)
-		if err != nil {
-			break
-		}
-
-		log.Printf("nr size [%d]", nr)
-		if nr == 0 {
-			break
-		}
-
-		dataBuf = dataBuf[:nr]
-		data = append(data, dataBuf...)
-	}
-	log.Printf("receive data[%s]\n", string(data))
-	//delete null character
-	withoutNull := bytes.Trim(data, "\x00")
-
-	rcv := dockerlauncher.Cmd{}
-	err = json.Unmarshal([]byte(withoutNull), &rcv)
-	log.Printf("rcv.Command = %s", rcv.Command)
-
-	if rcv.Command == "UpdateImage" {
-		log.Printf("Success\n")
-		return withoutNull, nil
-	} else {
-		log.Printf("error commnad[%s]\n", err)
-	}
-
-	log.Printf("end\n")
-	return send_str, nil
 }
 
 func parseUpdateImageParam(request *http.Request) (ImageName, ContainerName string, err error) {
@@ -504,7 +343,7 @@ func (w Worker) start() {
 			case req := <-w.req:
 				switch req.Command {
 				case "getContainersInfo":
-					containersInfo, err := getContainersInfo2()
+					containersInfo, err := getContainersInfo()
 					if err != nil {
 						respQueue <- Response{req.Num, "Error", nil}
 					} else {
@@ -512,7 +351,7 @@ func (w Worker) start() {
 					}
 
 				case "updateImage":
-					updateImageState, err := updateImageRequest2(req.HttpReq)
+					updateImageState, err := updateImageRequest(req.HttpReq)
 					if err != nil {
 						log.Printf("Error [%s]", err)
 						respQueue <- Response{req.Num, "Error", nil}
