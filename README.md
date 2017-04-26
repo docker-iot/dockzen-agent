@@ -1,10 +1,10 @@
-## container-service-agent
+## dockzen-agent
 
-container-service-agent is designed to manage between Tizen platform and server.
+dockzen-agent is designed to manage for Tizen with Docker and provide services to a client.
 
 ### Developer Quick-Start
 
-To build the daemon , the following build system dependencies are required:
+To build the daemons, the following build system dependencies are required:
 
 * go 1.7.5 or above
 * gb tool due to library dependecy
@@ -41,13 +41,13 @@ $ gb info
 
 build for arm
 ```
-$ build.sh arm
+$ ./build.sh arm
 ```
 or
 
 build for amd64
 ```
-$ build.sh
+$ ./build.sh
 ```
 
 #### build clean
@@ -56,6 +56,6 @@ $ build.sh
 $ make clean
 ```
 /bin/ folder is created and **two binaries** you can see in the folder.
-**container-service** is client which can receive a command from web server
-**container-serviced** is main daemon to check request form container-service and request to docker-launcher
+**dockzen-agentconn** is client which can receive a command from web server
+**dockzen-agent** is main daemon to check request form dockzen-agentconn and request it to dockzen-launcher
 
