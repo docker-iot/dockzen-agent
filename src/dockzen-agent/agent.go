@@ -2,7 +2,8 @@ package main
 
 import (
 	"bytes"
-	"csaapi"
+	"dockzen-agent/api/types"
+	"dockzen-agent/types/dockzenl"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,8 +14,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"types/csac"
-	"types/dockerlauncher"
 )
 
 const (
@@ -71,7 +70,7 @@ func readData(client net.Conn) ([]byte, error) {
 	//delete null character
 	withoutNull := bytes.Trim(data, "\x00")
 
-	rcv := dockerlauncher.Cmd{}
+	rcv := dockzenl.Cmd{}
 	err := json.Unmarshal([]byte(withoutNull), &rcv)
 	log.Printf("rcv.Command = %s", rcv.Command)
 
@@ -93,15 +92,15 @@ func writeData(client net.Conn, cmd string, m map[string]string) error {
 	var err error
 
 	if cmd == "getContainersInfo" {
-		send := dockerlauncher.Cmd{}
+		send := dockzenl.Cmd{}
 		send.Command = "GetContainersInfo"
 		send_str, err = json.Marshal(send)
 	} else if cmd == "updateImage" {
 
-		send := dockerlauncher.UpdateImageParameters{}
+		send := dockzenl.UpdateImageParameters{}
 		send.Command = "UpdateImage"
 
-		send.Param = dockerlauncher.UpdateParam{
+		send.Param = dockzenl.UpdateParam{
 			ContainerName: m["ContainerName"],
 			ImageName:     m["ImageName"],
 		}
@@ -134,9 +133,9 @@ func writeData(client net.Conn, cmd string, m map[string]string) error {
 	return nil
 }
 
-func getDockerLauncherInfo_Stub() dockerlauncher.GetContainersInfoReturn {
-	send := dockerlauncher.GetContainersInfoReturn{
-		Containers: []dockerlauncher.Container{
+func getDockerLauncherInfo_Stub() dockzenl.GetContainersInfoReturn {
+	send := dockzenl.GetContainersInfoReturn{
+		Containers: []dockzenl.Container{
 			{
 				ContainerName:   "aaaa",
 				ImageName:       "tizen1",
@@ -153,9 +152,9 @@ func getDockerLauncherInfo_Stub() dockerlauncher.GetContainersInfoReturn {
 	return send
 }
 
-func updateImage_Stub() dockerlauncher.UpdateImageReturn {
-	send := dockerlauncher.UpdateImageReturn{
-		State: dockerlauncher.DeviceState{
+func updateImage_Stub() dockzenl.UpdateImageReturn {
+	send := dockzenl.UpdateImageReturn{
+		State: dockzenl.DeviceState{
 			CurrentState: "Updating",
 		},
 	}
@@ -247,7 +246,7 @@ func updateImageRequest(request *http.Request) ([]byte, error) {
 
 func parseUpdateImageParam(request *http.Request) (ImageName, ContainerName string, err error) {
 
-	var body csac.UpdateImageParams
+	var body types.UpdateImageParams
 
 	decoder := json.NewDecoder(request.Body)
 	decoder.Decode(&body)
@@ -429,7 +428,7 @@ func main() {
 	dispatcher := NewDispatcher(reqQueue)
 	dispatcher.run()
 
-	listenAddress := csaapi.ContainerServiceSocket
+	listenAddress := types.ContainerServiceSocket
 	router := mux.NewRouter()
 	setupApi(router, reqQueue, respQueue)
 

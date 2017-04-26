@@ -1,4 +1,4 @@
-package dockerlauncher
+package dockzenl
 
 type DeviceState struct {
 	CurrentState string `json:"currentState"`

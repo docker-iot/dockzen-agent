@@ -13,9 +13,9 @@ import (
 	"os"
 	"strings"
 
-	"csaapi"
+	"dockzen-agent/api"
+	"dockzen-agent/api/types"
 	"encoding/json"
-	"types/csac"
 
 	"os/signal"
 	"syscall"
@@ -81,7 +81,7 @@ func ClientFunction() (err error) {
 	messages := make(chan string)
 	go wsReceive(ws, messages)
 
-	name, _ := csaapi.GetHardwareAddress()
+	name, _ := api.GetHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
 
@@ -144,7 +144,7 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 
 func wsSendContainerLists(ws *websocket.Conn) (err error) {
 
-	client, err := csaapi.NewCSAClient()
+	client, err := api.NewCSAClient()
 
 	if err != nil {
 		log.Printf("error = %s", err)
@@ -165,14 +165,14 @@ func wsSendContainerLists(ws *websocket.Conn) (err error) {
 
 func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 
-	client, err := csaapi.NewCSAClient()
+	client, err := api.NewCSAClient()
 
 	if err != nil {
 		log.Printf("error = %s", err)
 		return err
 	}
 
-	param := csac.UpdateImageParams{
+	param := types.UpdateImageParams{
 		ImageName:     data.ImageName,
 		ContainerName: data.ContainerName,
 	}

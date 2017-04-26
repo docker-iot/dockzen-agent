@@ -1,7 +1,9 @@
-package csaapi
+package api
 
 import (
 	"bytes"
+	"dockzen-agent/api/types"
+	"dockzen-agent/types/dockzenl"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,14 +13,9 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"types/csac"
-	"types/dockerlauncher"
 )
 
-const (
-	ContainerServiceSocket string = "/var/run/container_service.sock"
-	defaultTimeout                = 30 * time.Second
-)
+const defaultTimeout = 30 * time.Second
 
 type CSAClient struct {
 	Path       string
@@ -39,8 +36,8 @@ func newHTTPClient(path string, timeout time.Duration) *http.Client {
 
 func NewCSAClient() (*CSAClient, error) {
 
-	httpClient := newHTTPClient(ContainerServiceSocket, time.Duration(defaultTimeout))
-	return &CSAClient{ContainerServiceSocket, httpClient}, nil
+	httpClient := newHTTPClient(types.ContainerServiceSocket, time.Duration(defaultTimeout))
+	return &CSAClient{types.ContainerServiceSocket, httpClient}, nil
 }
 
 func (client *CSAClient) doRequest(method string, path string, body string) ([]byte, error) {
@@ -106,9 +103,9 @@ func GetHardwareAddress() (string, error) {
 	return hwAddr.String(), nil
 }
 
-func (client *CSAClient) GetContainersInfo() (csac.ContainerLists, error) {
+func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
 
-	var send csac.ContainerLists
+	var send types.ContainerLists
 
 	contents, err := client.doRequest("GET", "/v1/get/getContainersInfo", "")
 
@@ -117,7 +114,7 @@ func (client *CSAClient) GetContainersInfo() (csac.ContainerLists, error) {
 		return send, err
 	}
 
-	lists := dockerlauncher.GetContainersInfoReturn{}
+	lists := dockzenl.GetContainersInfoReturn{}
 
 	json.Unmarshal([]byte(contents), &lists)
 	var numOfList int = len(lists.Containers)
@@ -129,11 +126,11 @@ func (client *CSAClient) GetContainersInfo() (csac.ContainerLists, error) {
 
 	send.DeviceID = macaddress
 	log.Printf("send.DeviceID[%s]\n", send.DeviceID)
-	var containerValue csac.ContainerInfo
+	var containerValue types.ContainerInfo
 
 	for i := 0; i < numOfList; i++ {
 		if lists.Containers[i].ContainerName != "" && lists.Containers[i].ImageName != "" {
-			containerValue = csac.ContainerInfo{
+			containerValue = types.ContainerInfo{
 				ContainerName:   lists.Containers[i].ContainerName,
 				ImageName:       lists.Containers[i].ImageName,
 				ContainerStatus: lists.Containers[i].ContainerStatus,
@@ -150,8 +147,8 @@ func (client *CSAClient) GetContainersInfo() (csac.ContainerLists, error) {
 	return send, nil
 }
 
-func (client *CSAClient) UpdateImage(data csac.UpdateImageParams) (csac.UpdateImageReturn, error) {
-	var send csac.UpdateImageReturn
+func (client *CSAClient) UpdateImage(data types.UpdateImageParams) (types.UpdateImageReturn, error) {
+	var send types.UpdateImageReturn
 
 	send_str, _ := json.Marshal(data)
 	fmt.Println(string(send_str))
@@ -163,7 +160,7 @@ func (client *CSAClient) UpdateImage(data csac.UpdateImageParams) (csac.UpdateIm
 		return send, err
 	}
 
-	object := dockerlauncher.UpdateImageReturn{}
+	object := dockzenl.UpdateImageReturn{}
 
 	json.Unmarshal([]byte(contents), &object)
 	log.Printf("object [%s]\n", object)

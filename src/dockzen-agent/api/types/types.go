@@ -1,4 +1,8 @@
-package csac
+package types
+
+const (
+	ContainerServiceSocket string = "/var/run/container_service.sock"
+)
 
 type ContainerInfo struct {
 	ImageName       string `json:"ImageName"`
