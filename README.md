@@ -58,4 +58,5 @@ $ make clean
 /bin/ folder is created and **two binaries** you can see in the folder.
 **dockzen-agentconn** is client which can receive a command from web server
 **dockzen-agent** is main daemon to check request form dockzen-agentconn and request it to dockzen-launcher
+If you build with arm architecture, the file name will be dockzen-agentconn-linux-arm and dockzen-agent-linux-arm.
 
