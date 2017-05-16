@@ -1,37 +1,37 @@
 package dockzenl
 
 type DeviceState struct {
-	CurrentState string `json:"currentState"`
+	CurrentState string `json:"CurrentState"`
 }
 
 type Container struct {
-	ContainerId     string `json:"containerId"`
-	ContainerName   string `json:"containerName"`
-	ImageName       string `json:"imageName"`
-	ContainerStatus string `json:"containerStatus"`
+	ContainerID     string `json:"ContainerID"`
+	ContainerName   string `json:"ContainerName"`
+	ImageName       string `json:"ImageName"`
+	ContainerStatus string `json:"ContainerStatus"`
 }
 
 type ErrorReturn struct {
-	Message string `json:"message"`
+	Message string `json:"Message"`
 }
 
 type Cmd struct {
-	Command string `json:"command"`
+	Cmd string `json:"Cmd"`
 }
 type UpdateParam struct {
-	ImageName     string `json:"imageName"`
-	ContainerName string `json:"containerName"`
+	ImageName     string `json:"ImageName"`
+	ContainerName string `json:"ContainerName"`
 }
 
 type UpdateImageParameters struct {
-	Command string      `json:"command"`
-	Param   UpdateParam `json:"updateParam"`
+	Cmd   string      `json:"Cmd"`
+	Param UpdateParam `json:"UpdateParam"`
 }
 
 type GetContainersInfoReturn struct {
-	Containers []Container `json:"containers"`
+	Containers []Container `json:"Containers"`
 }
 
 type UpdateImageReturn struct {
-	State DeviceState `json:"deviceState"`
+	State DeviceState `json:"DeviceState"`
 }

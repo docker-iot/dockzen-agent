@@ -35,14 +35,14 @@ type Worker struct {
 }
 
 type Response struct {
-	Num     int
-	Command string
-	Body    []byte
+	Num  int
+	Cmd  string
+	Body []byte
 }
 
 type Request struct {
 	Num     int
-	Command string
+	Cmd     string
 	HttpReq *http.Request
 }
 
@@ -72,33 +72,33 @@ func readData(client net.Conn) ([]byte, error) {
 
 	rcv := dockzenl.Cmd{}
 	err := json.Unmarshal([]byte(withoutNull), &rcv)
-	log.Printf("rcv.Command = %s", rcv.Command)
+	log.Printf("rcv.Cmd = %s", rcv.Cmd)
 
-	if rcv.Command == "GetContainersInfo" {
+	if rcv.Cmd == "GetContainersInfo" {
 		log.Printf("Success\n")
 		return withoutNull, nil
-	} else if rcv.Command == "UpdateImage" {
+	} else if rcv.Cmd == "UpdateImage" {
 		log.Printf("Success\n")
 		return withoutNull, nil
 	} else {
 		log.Printf("error commnad[%s]\n", err)
 	}
 
-	return nil, errors.New("Error Command from Dockerl")
+	return nil, errors.New("Error Cmd from Dockerl")
 }
 
 func writeData(client net.Conn, cmd string, m map[string]string) error {
 	var send_str []byte
 	var err error
 
-	if cmd == "getContainersInfo" {
+	if cmd == "GetContainersInfo" {
 		send := dockzenl.Cmd{}
-		send.Command = "GetContainersInfo"
+		send.Cmd = "GetContainersInfo"
 		send_str, err = json.Marshal(send)
-	} else if cmd == "updateImage" {
+	} else if cmd == "UpdateImage" {
 
 		send := dockzenl.UpdateImageParameters{}
-		send.Command = "UpdateImage"
+		send.Cmd = "UpdateImage"
 
 		send.Param = dockzenl.UpdateParam{
 			ContainerName: m["ContainerName"],
@@ -107,7 +107,7 @@ func writeData(client net.Conn, cmd string, m map[string]string) error {
 		send_str, err = json.Marshal(send)
 
 	} else {
-		return errors.New("Invalid Command")
+		return errors.New("Invalid Cmd")
 	}
 
 	log.Printf(string(send_str))
@@ -163,7 +163,7 @@ func updateImage_Stub() dockzenl.UpdateImageReturn {
 }
 
 func getContainersInfo() ([]byte, error) {
-	log.Printf("getContainersInfo")
+	log.Printf("GetContainersInfo")
 	/*
 		stub := getDockerLauncherInfo_Stub()
 		var send_stub []byte
@@ -182,7 +182,7 @@ func getContainersInfo() ([]byte, error) {
 	defer client.Close()
 
 	// Send Command to dockerl
-	err = writeData(client, "getContainersInfo", nil)
+	err = writeData(client, "GetContainersInfo", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func getContainersInfo() ([]byte, error) {
 }
 
 func updateImageRequest(request *http.Request) ([]byte, error) {
-	log.Printf("updateImageRequest")
+	log.Printf("UpdateImageRequest")
 	/*
 		stub := updateImage_Stub()
 		var send_stub []byte
@@ -228,7 +228,7 @@ func updateImageRequest(request *http.Request) ([]byte, error) {
 	m["ImageName"] = ImageName
 	m["ContainerName"] = ContainerName
 
-	err = writeData(client, "updateImage", m)
+	err = writeData(client, "UpdateImage", m)
 	if err != nil {
 		return nil, err
 	}
@@ -262,11 +262,11 @@ func parseUpdateImageParam(request *http.Request) (ImageName, ContainerName stri
 
 func apiGetHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, resps chan Response) {
 	vars := mux.Vars(r)
-	Cmd := vars["command"]
-	log.Printf("command: [%s]", Cmd)
+	Cmd := vars["Cmd"]
+	log.Printf("Cmd: [%s]", Cmd)
 
 	// num is always 1, because, request will be handled the earier one is finished
-	req := Request{Command: Cmd, Num: 1, HttpReq: r}
+	req := Request{Cmd: Cmd, Num: 1, HttpReq: r}
 	reqs <- req
 
 	currentReqNum := 1
@@ -281,7 +281,7 @@ func apiGetHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, re
 
 	// Make resps
 	w.Header().Set("Content-Type", "application/json")
-	if respData.Command == "getContainersInfo" {
+	if respData.Cmd == "GetContainersInfo" {
 		w.WriteHeader(http.StatusOK)
 		w.Write(respData.Body)
 	} else {
@@ -294,11 +294,11 @@ func apiGetHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, re
 
 func apiPostHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, resps chan Response) {
 	vars := mux.Vars(r)
-	Cmd := vars["command"]
-	log.Printf("command: [%s]", Cmd)
+	Cmd := vars["Cmd"]
+	log.Printf("Cmd: [%s]", Cmd)
 
 	// num is always 1, because, request will be handled the earier one is finished
-	req := Request{Command: Cmd, Num: 1, HttpReq: r}
+	req := Request{Cmd: Cmd, Num: 1, HttpReq: r}
 
 	reqs <- req
 
@@ -314,9 +314,8 @@ func apiPostHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, r
 
 	// Make resps
 	w.Header().Set("Content-Type", "application/json")
-	if respData.Command == "updateImage" {
+	if respData.Cmd == "UpdateImage" {
 		w.WriteHeader(http.StatusOK)
-		w.Write(respData.Body)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -340,22 +339,22 @@ func (w Worker) start() {
 
 			select {
 			case req := <-w.req:
-				switch req.Command {
-				case "getContainersInfo":
+				switch req.Cmd {
+				case "GetContainersInfo":
 					containersInfo, err := getContainersInfo()
 					if err != nil {
 						respQueue <- Response{req.Num, "Error", nil}
 					} else {
-						respQueue <- Response{req.Num, req.Command, containersInfo}
+						respQueue <- Response{req.Num, req.Cmd, containersInfo}
 					}
 
-				case "updateImage":
-					updateImageState, err := updateImageRequest(req.HttpReq)
+				case "UpdateImage":
+					updateReturn, err := updateImageRequest(req.HttpReq)
 					if err != nil {
 						log.Printf("Error [%s]", err)
 						respQueue <- Response{req.Num, "Error", nil}
 					} else {
-						respQueue <- Response{req.Num, req.Command, updateImageState}
+						respQueue <- Response{req.Num, req.Cmd, updateReturn}
 					}
 
 				}
@@ -408,10 +407,10 @@ func (d *Dispatcher) dispatch() {
 func setupApi(r *mux.Router, req chan Request, resp chan Response) {
 
 	s := r.PathPrefix("/v1").Subrouter()
-	s.HandleFunc("/get/{command}", func(w http.ResponseWriter, r *http.Request) {
+	s.HandleFunc("/get/{Cmd}", func(w http.ResponseWriter, r *http.Request) {
 		apiGetHandler(w, r, req, resp)
 	}).Methods("GET")
-	s.HandleFunc("/post/{command}", func(w http.ResponseWriter, r *http.Request) {
+	s.HandleFunc("/post/{Cmd}", func(w http.ResponseWriter, r *http.Request) {
 		apiPostHandler(w, r, req, resp)
 	}).Methods("POST")
 }

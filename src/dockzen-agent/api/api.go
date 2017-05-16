@@ -63,12 +63,15 @@ func (client *CSAClient) doRequest(method string, path string, body string) ([]b
 
 	if resp.StatusCode == 200 {
 		defer resp.Body.Close()
-		contents, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("error =%s\n", err)
+		if method == "GET" {
+			contents, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("error =%s\n", err)
+			}
+			return contents, err
 		}
 
-		return contents, err
+		return nil, err
 
 	} else {
 		log.Printf("Error  : [%d]\n", resp.StatusCode)
@@ -107,7 +110,7 @@ func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
 
 	var send types.ContainerLists
 
-	contents, err := client.doRequest("GET", "/v1/get/getContainersInfo", "")
+	contents, err := client.doRequest("GET", "/v1/get/GetContainersInfo", "")
 
 	if err != nil {
 		log.Printf("error [%s]", err)
@@ -153,17 +156,12 @@ func (client *CSAClient) UpdateImage(data types.UpdateImageParams) (types.Update
 	send_str, _ := json.Marshal(data)
 	fmt.Println(string(send_str))
 
-	contents, err := client.doRequest("POST", "/v1/post/updateImage", string(send_str))
+	_, err := client.doRequest("POST", "/v1/post/UpdateImage", string(send_str))
 
 	if err != nil {
 		log.Printf("error [%s]", err)
 		return send, err
 	}
-
-	object := dockzenl.UpdateImageReturn{}
-
-	json.Unmarshal([]byte(contents), &object)
-	log.Printf("object [%s]\n", object)
 
 	send.Cmd = "UpdateImage"
 
@@ -171,9 +169,6 @@ func (client *CSAClient) UpdateImage(data types.UpdateImageParams) (types.Update
 
 	log.Printf("macaddress[%s]\n", macaddress)
 	send.DeviceID = macaddress
-
-	send.UpdateState = object.State.CurrentState
-	log.Printf("send.UpdateState[%s]\n", send.UpdateState)
 
 	return send, nil
 }
