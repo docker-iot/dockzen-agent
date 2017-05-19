@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	DockerLauncherSocket string = "/var/run/docker_launcher.sock"
+	DockerLauncherSocket string = "/var/run/dockzen_launcher.sock"
+	DockzenNotifySocket  string = "/var/run/dockzen_agent_notify.sock"
 	maxQueue             int    = 1
 )
 
@@ -415,6 +416,47 @@ func setupApi(r *mux.Router, req chan Request, resp chan Response) {
 	}).Methods("POST")
 }
 
+func clientConns(listener net.Listener) chan net.Conn {
+	ch := make(chan net.Conn)
+	i := 0
+	go func() {
+		for {
+			client, err := listener.Accept()
+			if client == nil {
+				fmt.Println(err)
+				continue
+			}
+			i++
+			fmt.Printf("%d: %v <-> %v\n", i, client.LocalAddr(), client.RemoteAddr())
+			ch <- client
+		}
+	}()
+	return ch
+}
+
+func handleConn(client net.Conn, notifier chan string) {
+	data := make([]byte, 0)
+	for {
+		dataBuf := make([]byte, 1024)
+		nr, err := client.Read(dataBuf)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		fmt.Printf("nr size [%d]\n", nr)
+		if nr == 0 {
+			break
+		}
+
+		dataBuf = dataBuf[:nr]
+		data = append(data, dataBuf...)
+	}
+
+	notifier <- string(data)
+	fmt.Println("end handleConn")
+}
+
 func main() {
 	log.Printf("Container-Service Agent starting")
 
@@ -426,6 +468,39 @@ func main() {
 
 	dispatcher := NewDispatcher(reqQueue)
 	dispatcher.run()
+
+	dockzenAgentNotifyCh := make(chan string)
+	var dockzenAgentNotiServer net.Listener
+	var err error
+
+	/* DockzenAgentNotify Server */
+	go func() {
+		listenAddress := DockzenNotifySocket
+		dockzenAgentNotiServer, err = net.Listen("unix", listenAddress)
+		if err != nil {
+			fmt.Println("Could not start dockzenAgentNotiServer : ", err)
+			return
+		}
+
+		fmt.Println("Start Dockzen-Agent-Notify Server")
+		defer dockzenAgentNotiServer.Close()
+
+		server := clientConns(dockzenAgentNotiServer)
+		for {
+			go handleConn(<-server, dockzenAgentNotifyCh)
+		}
+
+	}()
+
+	//Test for notify
+	go func() {
+		for {
+			select {
+			case msg1 := <-dockzenAgentNotifyCh:
+				fmt.Println("Message1 :" + msg1)
+			}
+		}
+	}()
 
 	listenAddress := types.ContainerServiceSocket
 	router := mux.NewRouter()
@@ -449,6 +524,7 @@ func main() {
 	go func(listener net.Listener, c chan os.Signal) {
 		sig := <-c
 		listener.Close()
+		dockzenAgentNotiServer.Close()
 		log.Printf("Caught signal %s: shutting down.", sig)
 		os.Exit(0)
 	}(listener, sigc)
