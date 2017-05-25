@@ -40,6 +40,10 @@ type UpdateParam struct {
 var chSignal chan os.Signal
 var done chan bool
 
+func callbackFunc() {
+	fmt.Printf("Callback!!!\n")
+}
+
 func main() {
 	chSignal = make(chan os.Signal, 1)
 	done = make(chan bool, 1)
@@ -48,17 +52,22 @@ func main() {
 	//signal.Notify(chSignal, os.Interrupt)
 	//signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
+	hndl, err := api.NewAgentHndl()
+
+	fmt.Println(err)
+
+	err = api.RegisterStateChangedCB(callbackFunc)
+	fmt.Println(err)
+	fmt.Println("Start main loop")
 	for {
-
-		go ClientFunction()
-
+		go ClientFunction(hndl)
 		<-done
 		time.Sleep(time.Second)
 	}
 
 }
 
-func ClientFunction() (err error) {
+func ClientFunction(hndl *types.DockzenHndl) (err error) {
 
 	go func() {
 		<-chSignal
@@ -98,10 +107,10 @@ func ClientFunction() (err error) {
 
 		case "GetContainersInfo":
 			log.Printf("command <GetContainersInfo>")
-			wsSendContainerLists(ws)
+			wsSendContainerLists(ws, hndl)
 		case "UpdateImage":
 			log.Printf("command <UpdateImage>")
-			wsSendUpdateImage(ws, parseUpdateParam(msg))
+
 		default:
 			log.Printf("add command of {%s}", rcv.Cmd)
 		}
@@ -142,16 +151,10 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 	return err
 }
 
-func wsSendContainerLists(ws *websocket.Conn) (err error) {
+func wsSendContainerLists(ws *websocket.Conn, hndl *types.DockzenHndl) (err error) {
 
-	client, err := api.NewCSAClient()
-
-	if err != nil {
-		log.Printf("error = %s", err)
-		return err
-	}
-
-	send, err1 := client.GetContainersInfo()
+	var sendCmd string = "GetContainersInfo"
+	send, err1 := api.GetContainersInfo(hndl, sendCmd)
 
 	if err1 != nil {
 		log.Printf("error = %s", err1)
@@ -160,32 +163,6 @@ func wsSendContainerLists(ws *websocket.Conn) (err error) {
 		log.Printf("send = %s", send)
 		websocket.JSON.Send(ws, send)
 	}
-	return nil
-}
-
-func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
-
-	client, err := api.NewCSAClient()
-
-	if err != nil {
-		log.Printf("error = %s", err)
-		return err
-	}
-
-	param := types.UpdateImageParams{
-		ImageName:     data.ImageName,
-		ContainerName: data.ContainerName,
-	}
-	send, err1 := client.UpdateImage(param)
-
-	if err1 != nil {
-		log.Printf("error = %s", err1)
-		return err1
-	} else {
-		log.Printf("send = %s", send)
-		websocket.JSON.Send(ws, send)
-	}
-
 	return nil
 }
 

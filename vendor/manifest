@@ -8,6 +8,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/codegangsta/negroni",
+			"repository": "https://github.com/codegangsta/negroni",
+			"revision": "1d8981a52d6bda4467a9faacf3fdddd38222dfc4",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/docker/docker/pkg/jsonlog",
 			"repository": "https://github.com/docker/docker",
 			"revision": "a9ff628a3c7c55cf016af88f37c4fb6a6029e17a",
@@ -35,15 +41,57 @@
 			"path": "/proto"
 		},
 		{
+			"importpath": "github.com/goincremental/negroni-sessions",
+			"repository": "https://github.com/goincremental/negroni-sessions",
+			"revision": "0055e7581fb0fe0f6ee5f622199672425526e1b2",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/gorilla/context",
+			"repository": "https://github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/gorilla/mux",
 			"repository": "https://github.com/gorilla/mux",
 			"revision": "599cba5e7b6137d46ddf58fb1765f5d928e69604",
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/gorilla/pat",
+			"repository": "https://github.com/gorilla/pat",
+			"revision": "cf955c3d1f2c27ee96f93e9738085c762ff5f49d",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/gorilla/securecookie",
+			"repository": "https://github.com/gorilla/securecookie",
+			"revision": "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/gorilla/sessions",
+			"repository": "https://github.com/gorilla/sessions",
+			"revision": "8b6b4cd75f07f7ee036eb37b8127bd40ab1efc49",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/rcrowley/goagain",
 			"repository": "https://github.com/rcrowley/goagain",
 			"revision": "f2f192b5d1a96e21dd4026ce67cda85e49659a48",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/schorsch/go-callbacks",
+			"repository": "https://github.com/schorsch/go-callbacks",
+			"revision": "4ef7d8fd850defcf0639750475c91ede86743199",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/urfave/negroni",
+			"repository": "https://github.com/urfave/negroni",
+			"revision": "1d8981a52d6bda4467a9faacf3fdddd38222dfc4",
 			"branch": "master"
 		},
 		{

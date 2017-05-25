@@ -1,8 +1,18 @@
 package types
 
+import "golang.org/x/net/websocket"
+
 const (
 	ContainerServiceSocket string = "/var/run/container_service.sock"
 )
+
+type DockzenHndl struct {
+	WS *websocket.Conn
+}
+
+type Cmd struct {
+	Cmd string `json:"Cmd"`
+}
 
 type ContainerInfo struct {
 	ImageName       string `json:"ImageName"`

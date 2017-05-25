@@ -2,419 +2,44 @@ package main
 
 import (
 	"bytes"
-	"dockzen-agent/api/types"
 	"dockzen-agent/types/dockzenl"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"log"
+	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 )
 
-const (
-	DockerLauncherSocket string = "/var/run/dockzen_launcher.sock"
-	DockzenNotifySocket  string = "/var/run/dockzen_agent_notify.sock"
-	maxQueue             int    = 1
-)
-
-var respQueue chan Response
-
-type Dispatcher struct {
-	workerPool chan chan Request
-	req        chan Request
-}
-
-type Worker struct {
-	req        chan Request
-	workerPool chan chan Request
-	quitChan   chan bool
+type Request struct {
+	Num  int
+	Resp chan Response
 }
 
 type Response struct {
-	Num  int
-	Cmd  string
-	Body []byte
+	Num      int
+	WorkerID int
 }
 
-type Request struct {
-	Num     int
-	Cmd     string
-	HttpReq *http.Request
-}
-
-func readData(client net.Conn) ([]byte, error) {
-
-	data := make([]byte, 0)
-
-	for {
-		dataBuf := make([]byte, 1024)
-		nr, err := client.Read(dataBuf)
-		if err != nil {
-			break
-		}
-
-		log.Printf("nr size [%d]", nr)
-		if nr == 0 {
-			break
-		}
-
-		dataBuf = dataBuf[:nr]
-		data = append(data, dataBuf...)
-	}
-
-	log.Printf("receive data[%s]\n", string(data))
-	//delete null character
-	withoutNull := bytes.Trim(data, "\x00")
-
-	rcv := dockzenl.Cmd{}
-	err := json.Unmarshal([]byte(withoutNull), &rcv)
-	log.Printf("rcv.Cmd = %s", rcv.Cmd)
-
-	if rcv.Cmd == "GetContainersInfo" {
-		log.Printf("Success\n")
-		return withoutNull, nil
-	} else if rcv.Cmd == "UpdateImage" {
-		log.Printf("Success\n")
-		return withoutNull, nil
-	} else {
-		log.Printf("error commnad[%s]\n", err)
-	}
-
-	return nil, errors.New("Error Cmd from Dockerl")
-}
-
-func writeData(client net.Conn, cmd string, m map[string]string) error {
-	var send_str []byte
-	var err error
-
-	if cmd == "GetContainersInfo" {
-		send := dockzenl.Cmd{}
-		send.Cmd = "GetContainersInfo"
-		send_str, err = json.Marshal(send)
-	} else if cmd == "UpdateImage" {
-
-		send := dockzenl.UpdateImageParameters{}
-		send.Cmd = "UpdateImage"
-
-		send.Param = dockzenl.UpdateParam{
-			ContainerName: m["ContainerName"],
-			ImageName:     m["ImageName"],
-		}
-		send_str, err = json.Marshal(send)
-
-	} else {
-		return errors.New("Invalid Cmd")
-	}
-
-	log.Printf(string(send_str))
-	length := len(send_str)
-
-	message := make([]byte, 0, length)
-	message = append(message, send_str...)
-
-	_, err = client.Write([]byte(message))
-	if err != nil {
-		log.Printf("error: %v\n", err)
-		return err
-	}
-
-	log.Printf("sent: %s\n", message)
-	err = client.(*net.UnixConn).CloseWrite()
-	if err != nil {
-		log.Printf("error: %v\n", err)
-		return err
-
-	}
-
-	return nil
-}
-
-func getDockerLauncherInfo_Stub() dockzenl.GetContainersInfoReturn {
-	send := dockzenl.GetContainersInfoReturn{
-		Containers: []dockzenl.Container{
-			{
-				ContainerName:   "aaaa",
-				ImageName:       "tizen1",
-				ContainerStatus: "created",
-			},
-			{
-				ContainerName:   "bbbb",
-				ImageName:       "tizen2",
-				ContainerStatus: "exited",
-			},
-		},
-	}
-
-	return send
-}
-
-func updateImage_Stub() dockzenl.UpdateImageReturn {
-	send := dockzenl.UpdateImageReturn{
-		State: dockzenl.DeviceState{
-			CurrentState: "Updating",
-		},
-	}
-
-	return send
-}
-
-func getContainersInfo() ([]byte, error) {
-	log.Printf("GetContainersInfo")
-	/*
-		stub := getDockerLauncherInfo_Stub()
-		var send_stub []byte
-
-		send_stub, _ = json.Marshal(stub)
-		log.Printf(string(send_stub))
-
-		return send_stub, nil
-	*/
-	client, err := net.Dial("unix", DockerLauncherSocket)
-	if err != nil {
-		log.Fatal("Dial error", err)
-		return nil, err
-	}
-
-	defer client.Close()
-
-	// Send Command to dockerl
-	err = writeData(client, "GetContainersInfo", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Receive Command from dockerl
-	data := make([]byte, 0)
-	data, err = readData(client)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("end\n")
-	return data, nil
-}
-
-func updateImageRequest(request *http.Request) ([]byte, error) {
-	log.Printf("UpdateImageRequest")
-	/*
-		stub := updateImage_Stub()
-		var send_stub []byte
-
-		send_stub, _ = json.Marshal(stub)
-		log.Printf(string(send_stub))
-
-		return send_stub, nil
-	*/
-	client, err := net.Dial("unix", DockerLauncherSocket)
-	if err != nil {
-		log.Fatal("Dial error", err)
-		return nil, err
-	}
-
-	defer client.Close()
-
-	// Send Command to dockerl
-	ImageName, ContainerName, err := parseUpdateImageParam(request)
-	if err != nil {
-		return nil, errors.New("Invalid Parameter")
-	}
-	log.Printf("ImageName : %s\n", ImageName)
-	log.Printf("ContainerName : %s\n", ContainerName)
-	m := make(map[string]string)
-	m["ImageName"] = ImageName
-	m["ContainerName"] = ContainerName
-
-	err = writeData(client, "UpdateImage", m)
-	if err != nil {
-		return nil, err
-	}
-
-	// Receive Command from dockerl
-	data := make([]byte, 0)
-	data, err = readData(client)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("end\n")
-	return data, nil
-}
-
-func parseUpdateImageParam(request *http.Request) (ImageName, ContainerName string, err error) {
-
-	var body types.UpdateImageParams
-
-	decoder := json.NewDecoder(request.Body)
-	decoder.Decode(&body)
-
-	log.Printf("body.ImageName = %s\n", body.ImageName)
-	log.Printf("body.ContainerName = %s\n", body.ContainerName)
-
-	ImageName = body.ImageName
-	ContainerName = body.ContainerName
-
-	return ImageName, ContainerName, err
-}
-
-func apiGetHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, resps chan Response) {
-	vars := mux.Vars(r)
-	Cmd := vars["Cmd"]
-	log.Printf("Cmd: [%s]", Cmd)
-
-	// num is always 1, because, request will be handled the earier one is finished
-	req := Request{Cmd: Cmd, Num: 1, HttpReq: r}
-	reqs <- req
-
-	currentReqNum := 1
-	var respData Response
-	for {
-		respData = <-respQueue
-		if currentReqNum == respData.Num {
-			fmt.Printf("done: [%d]\n", currentReqNum)
-			break
-		}
-	}
-
-	// Make resps
-	w.Header().Set("Content-Type", "application/json")
-	if respData.Cmd == "GetContainersInfo" {
-		w.WriteHeader(http.StatusOK)
-		w.Write(respData.Body)
-	} else {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	log.Println("Complete RequestHandler")
-	return
-}
-
-func apiPostHandler(w http.ResponseWriter, r *http.Request, reqs chan Request, resps chan Response) {
-	vars := mux.Vars(r)
-	Cmd := vars["Cmd"]
-	log.Printf("Cmd: [%s]", Cmd)
-
-	// num is always 1, because, request will be handled the earier one is finished
-	req := Request{Cmd: Cmd, Num: 1, HttpReq: r}
-
-	reqs <- req
-
-	currentReqNum := 1
-	var respData Response
-	for {
-		respData = <-respQueue
-		if currentReqNum == respData.Num {
-			fmt.Printf("done: [%d]\n", currentReqNum)
-			break
-		}
-	}
-
-	// Make resps
-	w.Header().Set("Content-Type", "application/json")
-	if respData.Cmd == "UpdateImage" {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	log.Println("Complete RequestHandler")
-	return
-}
-
-func NewWorker(workerPool chan chan Request) Worker {
-	return Worker{
-		req:        make(chan Request),
-		workerPool: workerPool,
-		quitChan:   make(chan bool),
-	}
-}
-
-func (w Worker) start() {
-	go func() {
-		for {
-			w.workerPool <- w.req
-
-			select {
-			case req := <-w.req:
-				switch req.Cmd {
-				case "GetContainersInfo":
-					containersInfo, err := getContainersInfo()
-					if err != nil {
-						respQueue <- Response{req.Num, "Error", nil}
-					} else {
-						respQueue <- Response{req.Num, req.Cmd, containersInfo}
-					}
-
-				case "UpdateImage":
-					updateReturn, err := updateImageRequest(req.HttpReq)
-					if err != nil {
-						log.Printf("Error [%s]", err)
-						respQueue <- Response{req.Num, "Error", nil}
-					} else {
-						respQueue <- Response{req.Num, req.Cmd, updateReturn}
-					}
-
-				}
-
-				log.Printf("Completed\n")
-			case <-w.quitChan:
-				log.Printf("worker stopping\n")
-				return
-			}
-		}
-	}()
-}
-
-func (w Worker) stop() {
-	go func() {
-		w.quitChan <- true
-	}()
-}
-
-func NewDispatcher(req chan Request) *Dispatcher {
-	workerpool := make(chan chan Request, 1)
-
-	return &Dispatcher{
-		req:        req,
-		workerPool: workerpool,
-	}
-}
-
-func (d *Dispatcher) run() {
-	woker := NewWorker(d.workerPool)
-	woker.start()
-
-	go d.dispatch()
-}
-
-func (d *Dispatcher) dispatch() {
-	for {
-		select {
-		case req := <-d.req:
-			go func() {
-				log.Printf("fetching workerRequest for : %d\n", req.Num)
-				workerRequest := <-d.workerPool
-				log.Printf("adding [%d] to workerRequest\n", req.Num)
-				workerRequest <- req
-			}()
-		}
-	}
-}
-
-func setupApi(r *mux.Router, req chan Request, resp chan Response) {
-
-	s := r.PathPrefix("/v1").Subrouter()
-	s.HandleFunc("/get/{Cmd}", func(w http.ResponseWriter, r *http.Request) {
-		apiGetHandler(w, r, req, resp)
-	}).Methods("GET")
-	s.HandleFunc("/post/{Cmd}", func(w http.ResponseWriter, r *http.Request) {
-		apiPostHandler(w, r, req, resp)
-	}).Methods("POST")
-}
+var clientWS *websocket.Conn
+var clientNotifyWS *websocket.Conn
+
+var dockzenLauncherClient net.Conn
+var recvDockzenAgentCh chan string
+var sendDockzenNotifyCh chan string
+
+const (
+	DockzenLauncherSocket  string = "dockzen_launcher.sock"
+	DockzenNotifySocket    string = "dockzen_agent_notify.sock"
+	DefaultSocketPath      string = "/var/run/"
+	DockzenAgentPort       string = "8080"
+	DockzenAgentNotifyPort string = "8082"
+	NumOfServer            int    = 4
+)
 
 func clientConns(listener net.Listener) chan net.Conn {
 	ch := make(chan net.Conn)
@@ -453,67 +78,197 @@ func handleConn(client net.Conn, notifier chan string) {
 		data = append(data, dataBuf...)
 	}
 
+	fmt.Println(string(data))
 	notifier <- string(data)
 	fmt.Println("end handleConn")
 }
 
+func dockzenAgentWSHandler(ws *websocket.Conn) {
+	fmt.Println("dockzen-agent handler")
+
+	clientWS = ws
+
+	for {
+		msg := make([]byte, 1024)
+
+		n, err := ws.Read(msg)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		fmt.Printf("size : %d\n", n)
+		recvDockzenAgentCh <- string(msg)
+	}
+}
+
+func dockzenNotifyWSHandler(ws *websocket.Conn) {
+	fmt.Println("dockzen-agent-notify handler")
+
+	clientNotifyWS = ws
+
+	for {
+		msg := make([]byte, 1024)
+
+		n, err := ws.Read(msg)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+		fmt.Printf("size : %d\n", n)
+		sendDockzenNotifyCh <- string(msg)
+	}
+}
+
+func receiver(recvFromLauncherAPICh, recvFromLauncherNotifyCh, recvFromAgentCh, sendToAgentCh, sendToLauncherCh chan string) {
+
+	for {
+		select {
+		case msg1 := <-recvFromLauncherAPICh:
+			fmt.Println("recvFromLauncherAPICh : " + msg1)
+
+		case msg2 := <-recvFromLauncherNotifyCh:
+			fmt.Println("recvFromLauncherNotifyCh : " + msg2)
+
+		case msg3 := <-recvFromAgentCh:
+			fmt.Println("recvFromAgentCh : " + msg3)
+			trimmedMsg := bytes.Trim([]byte(msg3), "\x00")
+
+			rcv := dockzenl.Cmd{}
+			json.Unmarshal([]byte(trimmedMsg), &rcv)
+			fmt.Println(rcv.Cmd)
+
+			switch rcv.Cmd {
+			case "GetContainersInfo":
+				fmt.Println("Call GetContainersInfo")
+				containersInfo, err := getContainersInfo(sendToLauncherCh)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				sendToAgentCh <- string(containersInfo)
+			case "UpdateImage":
+				fmt.Println("Call UpdateImage")
+
+				updateReturn, err := updateImage(sendToLauncherCh, trimmedMsg)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				sendToAgentCh <- string(updateReturn)
+			default:
+				fmt.Println("Not Support the Command")
+			}
+		}
+	}
+}
+
+func sender(sendToAgentCh, sendToLauncherCh, sendtToAgentNotifyCh chan string) {
+
+	for {
+		select {
+		case msg1 := <-sendToAgentCh:
+			fmt.Println("sendToAgentCh")
+			n, err := clientWS.Write([]byte(msg1))
+			if err != nil {
+				fmt.Printf("error : %s", err)
+			} else {
+				fmt.Printf("Sender[%d]: %s\n", n, msg1)
+			}
+
+		case msg2 := <-sendToLauncherCh:
+			fmt.Println("sendToLauncherCh")
+			n, err := dockzenLauncherClient.Write([]byte(msg2))
+			if err != nil {
+				fmt.Printf("error : %s", err)
+			} else {
+				fmt.Printf("Sender[%d]: %s\n", n, msg2)
+			}
+
+		case msg3 := <-sendtToAgentNotifyCh:
+			fmt.Println("sendtToAgentNotifyCh")
+			n, err := clientNotifyWS.Write([]byte(msg3))
+			if err != nil {
+				fmt.Printf("error : %s", err)
+			} else {
+				fmt.Printf("Sent[%d]: %s\n", n, msg3)
+			}
+		}
+	}
+}
+
 func main() {
-	log.Printf("Container-Service Agent starting")
+	fmt.Println("Start Event Initialize...")
 
-	reqQueue := make(chan Request, maxQueue)
-	defer close(reqQueue)
-
-	respQueue = make(chan Response, maxQueue)
-	defer close(respQueue)
-
-	dispatcher := NewDispatcher(reqQueue)
-	dispatcher.run()
-
-	dockzenAgentNotifyCh := make(chan string)
 	var dockzenAgentNotiServer net.Listener
 	var err error
 
+	/* Create Receive channel
+	dockzenAgentApiCh is from dockzen-launcher for api responses
+	dockzenAgentNotifyCh is from dockzen-launcher for notify
+	dockzenAgentCh is from dockzen-agentconn for cmd
+	*/
+	recvDockzenAgentApiCh := make(chan string)
+	recvDockzenAgentNotifyCh := make(chan string)
+	recvDockzenAgentCh = make(chan string)
+
+	sendDockzenAgentCh := make(chan string)
+	sendDockzenLauncherCh := make(chan string)
+	sendDockzenNotifyCh = make(chan string)
+
+	var wg sync.WaitGroup
+	wg.Add(NumOfServer)
+	/* DockzenAgent Server */
+
+	go func() {
+		fmt.Println("Start Dockzen-Agent Server")
+		http.Handle("/wsAgent", websocket.Handler(dockzenAgentWSHandler))
+		wg.Done()
+		err = http.ListenAndServe(":"+DockzenAgentPort, nil)
+		if err != nil {
+			panic("ListenAndServe: " + err.Error())
+		}
+	}()
+
+	go func() {
+		fmt.Println("Start Dockzen-Agent-Notify Server")
+		http.Handle("/wsNotify", websocket.Handler(dockzenNotifyWSHandler))
+		wg.Done()
+		err = http.ListenAndServe(":"+DockzenAgentNotifyPort, nil)
+		if err != nil {
+			panic("ListenAndServe: " + err.Error())
+		}
+	}()
+
 	/* DockzenAgentNotify Server */
 	go func() {
-		listenAddress := DockzenNotifySocket
+		listenAddress := DefaultSocketPath + DockzenNotifySocket
 		dockzenAgentNotiServer, err = net.Listen("unix", listenAddress)
 		if err != nil {
 			fmt.Println("Could not start dockzenAgentNotiServer : ", err)
 			return
 		}
 
-		fmt.Println("Start Dockzen-Agent-Notify Server")
 		defer dockzenAgentNotiServer.Close()
+		wg.Done()
 
 		server := clientConns(dockzenAgentNotiServer)
 		for {
-			go handleConn(<-server, dockzenAgentNotifyCh)
+			go handleConn(<-server, recvDockzenAgentNotifyCh)
 		}
 
 	}()
 
-	//Test for notify
-	go func() {
-		for {
-			select {
-			case msg1 := <-dockzenAgentNotifyCh:
-				fmt.Println("Message1 :" + msg1)
-			}
-		}
-	}()
-
-	listenAddress := types.ContainerServiceSocket
-	router := mux.NewRouter()
-	setupApi(router, reqQueue, respQueue)
-
-	listener, err := net.Listen("unix", listenAddress)
-
+	dockzenLauncherClient, err = net.Dial("unix", DefaultSocketPath+DockzenLauncherSocket)
 	if err != nil {
-		log.Fatalf("Could not listen on %s: %v", listenAddress, err)
+		fmt.Println(err)
 		return
 	}
 
-	defer listener.Close()
+	wg.Done()
+
+	defer dockzenLauncherClient.Close()
+
+	fmt.Println("Setup exception case")
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,
 		syscall.SIGHUP,
@@ -521,16 +276,34 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
-	go func(listener net.Listener, c chan os.Signal) {
+	go func(client net.Conn, linstener net.Listener, c chan os.Signal) {
 		sig := <-c
-		listener.Close()
-		dockzenAgentNotiServer.Close()
-		log.Printf("Caught signal %s: shutting down.", sig)
-		os.Exit(0)
-	}(listener, sigc)
 
-	log.Printf("Starting HTTP server on %s\n", listenAddress)
-	if err = http.Serve(listener, router); err != nil {
-		log.Fatalf("Could not start HTTP server: %v", err)
+		close(recvDockzenAgentApiCh)
+		close(recvDockzenAgentNotifyCh)
+		close(recvDockzenAgentCh)
+
+		close(sendDockzenAgentCh)
+		close(sendDockzenLauncherCh)
+		close(sendDockzenNotifyCh)
+
+		dockzenAgentNotiServer.Close()
+		dockzenLauncherClient.Close()
+
+		fmt.Printf("Caught signal %s: shutting down.", sig)
+		os.Exit(0)
+	}(dockzenLauncherClient, dockzenAgentNotiServer, sigc)
+
+	wg.Wait()
+
+	fmt.Println("Initialized")
+
+	go receiver(recvDockzenAgentApiCh, recvDockzenAgentNotifyCh, recvDockzenAgentCh, sendDockzenAgentCh, sendDockzenLauncherCh)
+
+	go sender(sendDockzenAgentCh, sendDockzenLauncherCh, sendDockzenNotifyCh)
+
+	for {
+		time.Sleep(time.Second)
 	}
+
 }

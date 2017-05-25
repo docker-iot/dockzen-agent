@@ -1,83 +1,160 @@
 package api
 
 import (
-	"bytes"
 	"dockzen-agent/api/types"
 	"dockzen-agent/types/dockzenl"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"github.com/schorsch/go-callbacks"
+	"golang.org/x/net/websocket"
 	"log"
 	"net"
-	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
+type RequestLauncher struct {
+	WS   *websocket.Conn
+	Data string
+}
+
+type ResponseLauncher struct {
+	WS   *websocket.Conn
+	Data string
+}
+
+var dockzen_agent_origin = "http://localhost:8080/wsAgent"
+var dockzen_agent_url = "ws://localhost:8080/wsAgent"
+
+var dockzen_agent_notify_origin = "http://localhost:8082/wsNotify"
+var dockzen_agent_notify_url = "ws://localhost:8082/wsNotify"
+
 const defaultTimeout = 30 * time.Second
 
-type CSAClient struct {
-	Path       string
-	HTTPClient *http.Client
-}
+var doneServer chan bool
+var chSignal chan os.Signal
+var sendToLauncherCh chan RequestLauncher
+var responseFromLauncher chan ResponseLauncher
 
-func newHTTPClient(path string, timeout time.Duration) *http.Client {
-	httpTransport := &http.Transport{}
+var notifyCh chan string
+var createWsAgentConn bool = false
+var createWsNotifyConn bool = false
+var wsAgent *websocket.Conn
+var wsNotify *websocket.Conn
 
-	socketPath := path
-	unixDial := func(proto, addr string) (net.Conn, error) {
-		return net.DialTimeout("unix", socketPath, timeout)
+var cbs callbacks.Callbacks
+
+func checkConnection(name string) bool {
+	switch name {
+	case "wsAgent":
+		return createWsAgentConn
+	case "wsNotify":
+		return createWsNotifyConn
 	}
-	httpTransport.Dial = unixDial
 
-	return &http.Client{Transport: httpTransport}
+	return false
 }
 
-func NewCSAClient() (*CSAClient, error) {
-
-	httpClient := newHTTPClient(types.ContainerServiceSocket, time.Duration(defaultTimeout))
-	return &CSAClient{types.ContainerServiceSocket, httpClient}, nil
-}
-
-func (client *CSAClient) doRequest(method string, path string, body string) ([]byte, error) {
-	log.Printf("doRequest Method[%s] path[%s]", method, path)
-
-	var resp *http.Response
+func createConnection(name string) (*websocket.Conn, error) {
+	var ws *websocket.Conn = nil
 	var err error
 
-	switch method {
-	case "GET":
-		resp, err = client.HTTPClient.Get("http://unix" + path)
-	case "POST":
-		reqBody := bytes.NewBufferString(body)
-		log.Printf("reqBody : [%s]\n", reqBody)
-		resp, err = client.HTTPClient.Post("http://unix"+path, "text/plain", reqBody)
-	default:
-		return nil, errors.New("Invaild Method")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == 200 {
-		defer resp.Body.Close()
-		if method == "GET" {
-			contents, err := ioutil.ReadAll(resp.Body)
+	switch name {
+	case "wsAgent":
+		if checkConnection("wsAgent") == false {
+			ws, err = websocket.Dial(dockzen_agent_url, "", dockzen_agent_origin)
 			if err != nil {
-				log.Printf("error =%s\n", err)
+				log.Fatal(err)
 			}
-			return contents, err
+			wsAgent = ws
+			createWsAgentConn = true
+		} else {
+			ws = wsAgent
+			fmt.Println("Already Connected")
 		}
-
-		return nil, err
-
-	} else {
-		log.Printf("Error  : [%d]\n", resp.StatusCode)
+	case "wsNotify":
+		if checkConnection("wsNotify") == false {
+			ws, err = websocket.Dial(dockzen_agent_notify_url, "", dockzen_agent_notify_origin)
+			if err != nil {
+				log.Fatal(err)
+			}
+			wsNotify = ws
+			createWsNotifyConn = true
+		} else {
+			ws = wsNotify
+			fmt.Println("Already Connected")
+		}
+	default:
+		fmt.Println("Unknown Connection")
+		err = errors.New("Unknown Connection")
 	}
 
-	return nil, errors.New(string(resp.StatusCode))
+	return ws, err
+}
+
+func triggerCallback(data string) {
+
+	cbs.CallbacksCall("stateChanged", data)
+}
+
+func startAPIServer(webSocketAgent, webSocketNotify *websocket.Conn) {
+	fmt.Println("StartAPIServer")
+
+	chSignal = make(chan os.Signal, 1)
+	//sendToLauncherCh = make(chan string)
+	sendToLauncherCh = make(chan RequestLauncher)
+	responseFromLauncher = make(chan ResponseLauncher)
+
+	notifyCh = make(chan string)
+
+	signal.Notify(chSignal, syscall.SIGUSR1)
+	go receiver(webSocketAgent, webSocketNotify)
+	go sender(sendToLauncherCh, notifyCh)
+
+	defer webSocketAgent.Close()
+	defer webSocketNotify.Close()
+
+	for {
+		time.Sleep(time.Second)
+	}
+}
+
+func NewAgentHndl() (*types.DockzenHndl, error) {
+
+	agentWS, err1 := createConnection("wsAgent")
+	if err1 != nil {
+		fmt.Println(err1)
+		return nil, err1
+	}
+
+	notifyWS, err2 := createConnection("wsNotify")
+	if err2 != nil {
+		fmt.Println(err2)
+		return nil, err2
+	}
+
+	go startAPIServer(agentWS, notifyWS)
+
+	fmt.Println("return NewAgnetHndl")
+
+	return &types.DockzenHndl{agentWS}, nil
+}
+
+func RegisterStateChangedCB(theFunc func()) error {
+
+	var err error
+
+	if checkConnection("wsNotify") == true {
+		cb := callbacks.Callback{Name: "StateChanaged", Method: theFunc}
+		cbs = append(cbs, cb)
+	} else {
+		err = errors.New("Unable to register callback")
+	}
+
+	return err
 }
 
 func GetHardwareAddress() (string, error) {
@@ -106,12 +183,47 @@ func GetHardwareAddress() (string, error) {
 	return hwAddr.String(), nil
 }
 
-func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
+func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
+
+	var read_buf string
+
+	for {
+		err = websocket.Message.Receive(ws, &read_buf)
+
+		if err != nil {
+			log.Printf("wsReceive2 wsReceive : %s", err)
+			syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
+			break
+		}
+
+		chan_msg <- read_buf
+	}
+
+	return err
+}
+
+func GetContainersInfo(hndl *types.DockzenHndl, data string) (types.ContainerLists, error) {
 
 	var send types.ContainerLists
+	var contents []byte
+	var err error
 
-	contents, err := client.doRequest("GET", "/v1/get/GetContainersInfo", "")
+	sendCmd := types.Cmd{
+		Cmd: data,
+	}
 
+	send_json, _ := json.Marshal(sendCmd)
+	//send to launcher
+	var sendData RequestLauncher
+	sendData = RequestLauncher{
+		WS:   hndl.WS,
+		Data: string(send_json),
+	}
+
+	sendToLauncherCh <- sendData
+
+	// Need to receive return from dockzen-agent
+	//contents =
 	if err != nil {
 		log.Printf("error [%s]", err)
 		return send, err
@@ -128,7 +240,7 @@ func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
 	macaddress, err := GetHardwareAddress()
 
 	send.DeviceID = macaddress
-	log.Printf("send.DeviceID[%s]\n", send.DeviceID)
+
 	var containerValue types.ContainerInfo
 
 	for i := 0; i < numOfList; i++ {
@@ -150,25 +262,50 @@ func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
 	return send, nil
 }
 
-func (client *CSAClient) UpdateImage(data types.UpdateImageParams) (types.UpdateImageReturn, error) {
-	var send types.UpdateImageReturn
+func receiver(webSocketAgent, webSocketNotify *websocket.Conn) {
+	fmt.Println("Api receiver Start")
+	go func() {
+		<-chSignal
+		return
+	}()
 
-	send_str, _ := json.Marshal(data)
-	fmt.Println(string(send_str))
+	recvApiResponseCh := make(chan string)
+	recvNotifyCh := make(chan string)
 
-	_, err := client.doRequest("POST", "/v1/post/UpdateImage", string(send_str))
+	go wsReceive(webSocketAgent, recvApiResponseCh)
+	go wsReceive(webSocketNotify, recvNotifyCh)
 
-	if err != nil {
-		log.Printf("error [%s]", err)
-		return send, err
+	//defer webSocketAgent.Close()
+	//defer webSocketNotify.Close()
+	for {
+		select {
+		case msg1 := <-recvApiResponseCh:
+			fmt.Println("recvApiResponseCh :" + msg1)
+			rcv := types.Cmd{}
+			_ = rcv
+		case msg2 := <-recvNotifyCh:
+			fmt.Println("recvNotifyCh :" + msg2)
+			triggerCallback(msg2)
+		}
 	}
 
-	send.Cmd = "UpdateImage"
+	fmt.Println("end api receiver")
+}
 
-	macaddress, err := GetHardwareAddress()
-
-	log.Printf("macaddress[%s]\n", macaddress)
-	send.DeviceID = macaddress
-
-	return send, nil
+func sender(sendToLaunchCh chan RequestLauncher, callBackCh chan string) {
+	for {
+		select {
+		case msg1 := <-sendToLaunchCh:
+			fmt.Println("api Sender : send to Launcher")
+			n, err := msg1.WS.Write([]byte(msg1.Data))
+			if err != nil {
+				fmt.Printf("error : %s\n", err)
+			}
+			fmt.Printf("Sender[%d]: %s\n", n, msg1.Data)
+		case msg2 := <-callBackCh:
+			fmt.Println("api callback : callback")
+			cbs.CallbacksCall("stateChanged", msg2)
+			fmt.Printf("Callback[%s]\n", msg2)
+		}
+	}
 }
