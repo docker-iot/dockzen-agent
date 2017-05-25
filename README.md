@@ -2,6 +2,11 @@
 
 dockzen-agent is designed to manage for Tizen with Docker and provide services to a client.
 
+### Branch version
+
+v0.1
+* Add up to event mechanism in dockzen-agent. 
+
 ### Developer Quick-Start
 
 To build the daemons, the following build system dependencies are required:
