@@ -13,8 +13,6 @@ import (
 	"os"
 	"strings"
 
-	"dockzen-agent/api"
-	"dockzen-agent/api/types"
 	"encoding/json"
 
 	"os/signal"
@@ -40,7 +38,10 @@ type UpdateParam struct {
 var chSignal chan os.Signal
 var done chan bool
 
-func main() {
+func WI_init(){
+
+	log.Println("Web connection start !!!\n")
+
 	chSignal = make(chan os.Signal, 1)
 	done = make(chan bool, 1)
 
@@ -81,7 +82,7 @@ func ClientFunction() (err error) {
 	messages := make(chan string)
 	go wsReceive(ws, messages)
 
-	name, _ := api.GetHardwareAddress()
+	name, _ := GetHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
 
@@ -144,7 +145,7 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 
 func wsSendContainerLists(ws *websocket.Conn) (err error) {
 
-	client, err := api.NewCSAClient()
+	client, err := NewCSAClient()
 
 	if err != nil {
 		log.Printf("error = %s", err)
@@ -165,14 +166,14 @@ func wsSendContainerLists(ws *websocket.Conn) (err error) {
 
 func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 
-	client, err := api.NewCSAClient()
+	client, err := NewCSAClient()
 
 	if err != nil {
 		log.Printf("error = %s", err)
 		return err
 	}
 
-	param := types.UpdateImageParams{
+	param := UpdateImageParams{
 		ImageName:     data.ImageName,
 		ContainerName: data.ContainerName,
 	}
@@ -388,7 +389,7 @@ func json_marshal() {
 
 func json_unmarshal() {
 	// convert from string to struct
-	rcv_str := `{"cmd": "connected" 
+	rcv_str := `{"cmd": "connected"
 			, "token": "test-token"
 			, "clinetnum": 3}`
 	rcv := ConnectedResp{}
@@ -442,7 +443,7 @@ type DockerInfo struct {
 
 func dockertest() {
 	// test docker daemon response
-	inputstring := `[{"Id": "8433735be769c5787965fdbd3d8bd7635d793d5fff968b0626ea04f5ee80a755" 
+	inputstring := `[{"Id": "8433735be769c5787965fdbd3d8bd7635d793d5fff968b0626ea04f5ee80a755"
 				,"Names": "/poc1"
 				,"Image": "13.124.64.10:443/minimal"
 				,"ImageID":"sha256:8502bca5fca7a2a8ea6e5434a1a5462cc4cf84c116cbdacef4aab078b2571dc8"
@@ -472,7 +473,7 @@ func dockertest() {
 						,"RW":true
 						,"Propagation":""}]
 				},
-				{"Id": "8433735be769c5787965fdbd3d8bd7635d793d5fff968b0626ea04f5ee80a755" 
+				{"Id": "8433735be769c5787965fdbd3d8bd7635d793d5fff968b0626ea04f5ee80a755"
 				,"Names": "/poc1"
 				,"Image": "13.124.64.10:443/minimal"
 				,"ImageID":"sha256:8502bca5fca7a2a8ea6e5434a1a5462cc4cf84c116cbdacef4aab078b2571dc8"

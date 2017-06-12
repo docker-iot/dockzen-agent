@@ -1,4 +1,4 @@
-package types
+package main
 
 const (
 	ContainerServiceSocket string = "/var/run/container_service.sock"

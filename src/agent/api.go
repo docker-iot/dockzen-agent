@@ -1,9 +1,8 @@
-package api
+package main
 
 import (
 	"bytes"
-	"dockzen-agent/api/types"
-	"dockzen-agent/types/dockzenl"
+	"agent/types/dockzenl"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,8 +35,8 @@ func newHTTPClient(path string, timeout time.Duration) *http.Client {
 
 func NewCSAClient() (*CSAClient, error) {
 
-	httpClient := newHTTPClient(types.ContainerServiceSocket, time.Duration(defaultTimeout))
-	return &CSAClient{types.ContainerServiceSocket, httpClient}, nil
+	httpClient := newHTTPClient(ContainerServiceSocket, time.Duration(defaultTimeout))
+	return &CSAClient{ContainerServiceSocket, httpClient}, nil
 }
 
 func (client *CSAClient) doRequest(method string, path string, body string) ([]byte, error) {
@@ -106,9 +105,9 @@ func GetHardwareAddress() (string, error) {
 	return hwAddr.String(), nil
 }
 
-func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
+func (client *CSAClient) GetContainersInfo() (ContainerLists, error) {
 
-	var send types.ContainerLists
+	var send ContainerLists
 
 	contents, err := client.doRequest("GET", "/v1/get/GetContainersInfo", "")
 
@@ -129,11 +128,11 @@ func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
 
 	send.DeviceID = macaddress
 	log.Printf("send.DeviceID[%s]\n", send.DeviceID)
-	var containerValue types.ContainerInfo
+	var containerValue ContainerInfo
 
 	for i := 0; i < numOfList; i++ {
 		if lists.Containers[i].ContainerName != "" && lists.Containers[i].ImageName != "" {
-			containerValue = types.ContainerInfo{
+			containerValue = ContainerInfo{
 				ContainerName:   lists.Containers[i].ContainerName,
 				ImageName:       lists.Containers[i].ImageName,
 				ContainerStatus: lists.Containers[i].ContainerStatus,
@@ -150,8 +149,8 @@ func (client *CSAClient) GetContainersInfo() (types.ContainerLists, error) {
 	return send, nil
 }
 
-func (client *CSAClient) UpdateImage(data types.UpdateImageParams) (types.UpdateImageReturn, error) {
-	var send types.UpdateImageReturn
+func (client *CSAClient) UpdateImage(data UpdateImageParams) (UpdateImageReturn, error) {
+	var send UpdateImageReturn
 
 	send_str, _ := json.Marshal(data)
 	fmt.Println(string(send_str))
