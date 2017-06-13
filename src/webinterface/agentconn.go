@@ -1,9 +1,9 @@
-package main
+package webinterface
 
 import (
 	"fmt"
 	"log"
-
+	"services"
 	"golang.org/x/net/websocket"
 	"io"
 	"net"
@@ -12,10 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
 	"encoding/json"
-
-	"os/signal"
 	"syscall"
 	"time"
 )
@@ -42,10 +39,10 @@ func WI_init(){
 
 	log.Println("Web connection start !!!\n")
 
-	chSignal = make(chan os.Signal, 1)
-	done = make(chan bool, 1)
+	//chSignal = make(chan os.Signal, 1)
+	//done = make(chan bool, 1)
 
-	signal.Notify(chSignal, syscall.SIGUSR1)
+	//signal.Notify(chSignal, syscall.SIGUSR1)
 	//signal.Notify(chSignal, os.Interrupt)
 	//signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
@@ -82,7 +79,7 @@ func ClientFunction() (err error) {
 	messages := make(chan string)
 	go wsReceive(ws, messages)
 
-	name, _ := GetHardwareAddress()
+	name, _ := services.GetHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
 
@@ -145,35 +142,46 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 
 func wsSendContainerLists(ws *websocket.Conn) (err error) {
 
-	client, err := NewCSAClient()
+	//client, err := services.NewCSAClient()
 
-	if err != nil {
-		log.Printf("error = %s", err)
-		return err
-	}
+	//if err != nil {
+	//	log.Printf("error = %s", err)
+	//	return err
+	//}
 
-	send, err1 := client.GetContainersInfo()
+	//send, err1 := client.GetContainersInfo()
 
-	if err1 != nil {
-		log.Printf("error = %s", err1)
-		return err1
-	} else {
-		log.Printf("send = %s", send)
-		websocket.JSON.Send(ws, send)
-	}
+	//if err1 != nil {
+	//	log.Printf("error = %s", err1)
+	//	return err1
+	//} else {
+	//	log.Printf("send = %s", send)
+	//	websocket.JSON.Send(ws, send)
+	//}
+
+	services.DZA_Mon_GetContainersInfo()
+
+	//containersInfo, err := services.DZA_Mon_GetContainersInfo()
+//	if err != nil {
+//		log.Printf("WEB>> error = %s", err)
+//	}	else {
+//		log.Printf("WEB>> send = %s", containersInfo)
+//		websocket.JSON.Send(ws, containersInfo)
+//	}
+
 	return nil
 }
 
 func wsSendUpdateImage(ws *websocket.Conn, data UpdateParam) (err error) {
 
-	client, err := NewCSAClient()
+	client, err := services.NewCSAClient()
 
 	if err != nil {
 		log.Printf("error = %s", err)
 		return err
 	}
 
-	param := UpdateImageParams{
+	param := services.UpdateImageParams{
 		ImageName:     data.ImageName,
 		ContainerName: data.ContainerName,
 	}

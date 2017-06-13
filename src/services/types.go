@@ -1,4 +1,4 @@
-package main
+package services
 
 const (
 	ContainerServiceSocket string = "/var/run/container_service.sock"
