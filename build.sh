@@ -1,6 +1,8 @@
 echo "****************************"
+
 if [ "$1" = "arm" ]; then
         echo "Target Binary arch is ARM"
+        export CGO_ENABLED=1
         export GOARCH=arm GOARM=7
         export CC="arm-linux-gnueabi-gcc"
         arm-linux-gnueabi-gcc -c -o src/lib/dockzen_api.o src/lib/dockzen_api.c

@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "dockzen_api_types.h"
 
-ContainerListsInfo capi_Dockzen_GetContainerListsInfo(void)
+ContainersInfo capi_Dockzen_GetContainerListsInfo(void)
 {
-	ContainerListsInfo stContainerListsInfo = {"container-id", "container-name", "image-name", "111"};
+	ContainersInfo stContainerListsInfo={2,{"container-id", "container1", "tizen1", "running", "container-id", "container2", "tizen2", "running"}};
 
 	printf("~~~api_GetContainerListsInfo~~~");
 	return stContainerListsInfo;

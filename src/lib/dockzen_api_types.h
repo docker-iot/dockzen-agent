@@ -1,8 +1,11 @@
 typedef struct {
-	char *ContainerID;
-	char *ContainerName;
-	char *ImageName;
-	char *ContainerStatus;
-}ContainerListsInfo;
+	int Count;
+	struct {
+		char *ID;
+		char *Name;
+		char *ImageName;
+		char *Status;
+	}Container[10];
+}ContainersInfo;
 
-ContainerListsInfo capi_Dockzen_GetContainerListsInfo(void);
+ContainersInfo capi_Dockzen_GetContainerListsInfo(void);
