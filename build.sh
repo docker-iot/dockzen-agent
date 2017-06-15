@@ -5,17 +5,17 @@ if [ "$1" = "arm" ]; then
         export CGO_ENABLED=1
         export GOARCH=arm GOARM=7
         export CC="arm-linux-gnueabi-gcc"
-        arm-linux-gnueabi-gcc -c -o src/lib/dockzen_api.o src/lib/dockzen_api.c
+        arm-linux-gnueabi-gcc -c src/lib/*.c
 else
         echo "Target Binary arch is amd64"
         export GOARCH=amd64
         export CC="gcc"
-        gcc -c -o src/lib/dockzen_api.o src/lib/dockzen_api.c
+        gcc -c src/lib/*.c
 fi
 
-ar cr src/lib/libdockzen.a src/lib/dockzen_api.o
+ar cr src/lib/libdockzen.a *.o
 
-rm -rf src/lib/dockzen_api.o
+rm -rf *.o
 
 echo make clean
 make clean

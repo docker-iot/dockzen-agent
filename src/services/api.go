@@ -10,7 +10,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -77,32 +76,6 @@ func (client *CSAClient) doRequest(method string, path string, body string) ([]b
 	}
 
 	return nil, errors.New(string(resp.StatusCode))
-}
-
-func GetHardwareAddress() (string, error) {
-
-	currentNetworkHardwareName := "eth0"
-	netInterface, err := net.InterfaceByName(currentNetworkHardwareName)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	name := netInterface.Name
-	macAddress := netInterface.HardwareAddr
-
-	log.Printf("Hardware name : %s\n", string(name))
-
-	hwAddr, err := net.ParseMAC(macAddress.String())
-
-	if err != nil {
-		log.Printf("No able to parse MAC address : %s\n", err)
-		os.Exit(-1)
-	}
-
-	log.Printf("Physical hardware address : %s \n", hwAddr.String())
-
-	return hwAddr.String(), nil
 }
 
 func (client *CSAClient) GetContainersInfo() (ContainerLists, error) {

@@ -2,77 +2,76 @@ package lib
 
 import (
 	"fmt"
-	"log"
-	"net"
-	"os"
+	dockzen_h "include"
 )
 
 /*
-#include <dockzen_api_types.h>
+#include <dockzen.h>
+
+void _C_CallbackContainerUpdate(int status, void* user_data);
+
+typedef struct{
+	void * cb_fcn;
+}update_cb;
+
 */
 import "C"
 
-func GetHardwareAddress() (string, error) {
+type ContainerUpdateCB func(int)
 
-	currentNetworkHardwareName := "eth0"
-	netInterface, err := net.InterfaceByName(currentNetworkHardwareName)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	name := netInterface.Name
-	macAddress := netInterface.HardwareAddr
-
-	log.Printf("Hardware name : %s\n", string(name))
-
-	hwAddr, err := net.ParseMAC(macAddress.String())
-
-	if err != nil {
-		log.Printf("No able to parse MAC address : %s\n", err)
-		os.Exit(-1)
-	}
-
-	log.Printf("Physical hardware address : %s \n", hwAddr.String())
-
-	return hwAddr.String(), nil
+type UserDataCB struct {
+	fn ContainerUpdateCB
 }
 
-func GetContainerListsInfo() (ContainerLists, error ) {
+var fn_cb ContainerUpdateCB
+
+func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 
 	fmt.Println(">>>>>>>>>> GetContainerListsInfo()...")
 
-	lists := C.capi_Dockzen_GetContainerListsInfo()
+	var C_containers_info C.containers_info_s
+	var ret = C.dockzen_get_containers_info(&C_containers_info)
 
-	var info ContainerLists
+	fmt.Println("ret = ", ret)
 
-	info.Cmd = "GetContainersInfo"
+	if ret == 0 {
+		containers_info.Count = int(C_containers_info.count)
 
-	numOfList := int(lists.Count)
-	info.ContainerCount = numOfList
-
-	macaddress, err := GetHardwareAddress()
-
-	if err == nil {
-		fmt.Println("Mac address error!!!!")
-	}
-
-	info.DeviceID = macaddress
-	fmt.Println("DevicedID = ", info.DeviceID)
-	var containerValue ContainerInfo
-
-	for i := 0; i < numOfList; i++ {
-		containerValue = ContainerInfo{
-			ContainerID: 			C.GoString(lists.Container[i].ID),
-			ContainerName: 		C.GoString(lists.Container[i].Name),
-			ImageName: 				C.GoString(lists.Container[i].ImageName),
-			ContainerStatus: 	C.GoString(lists.Container[i].Status),
+		for i := 0; i<containers_info.Count; i++ {
+			containers_info.Containerinfo[i].ID = C.GoString(C_containers_info.container[i].id)
+			containers_info.Containerinfo[i].Name = C.GoString(C_containers_info.container[i].name)
+			containers_info.Containerinfo[i].ImageName = C.GoString(C_containers_info.container[i].image_name)
+			containers_info.Containerinfo[i].Status = C.GoString(C_containers_info.container[i].status)
 		}
-		info.Container = append(info.Container, containerValue)
 	}
 
-	fmt.Println("ContainerInfo -> ", info)
+	fmt.Println("container = ", containers_info)
+	return int(ret)
+}
 
-	return info, nil
+//export _GO_CallbackContainerUpdate
+func _GO_CallbackContainerUpdate(status C.int, user_data C.int) {
+	fmt.Println("updateCallback status = ", status)
+
+	fn_cb(int(status))
+}
+
+func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, callback ContainerUpdateCB) int {
+	fmt.Println(">>>>>>>>>> UpdateContainer()...")
+
+	//var C_update_info C.container_update_s
+	//C_update_info.id = C.CString("container_update.ID")
+
+	//var user_data UserDataCB
+	//user_data.fn = callback
+
+	//fn_cb = callback
+
+	//var ret = C.dockzen_update_container(&C_update_info, ((C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate))), unsafe.Pointer(&user_data))
+
+	//fmt.Println("ret = ", ret)
+	var ret int
+
+	return int(ret)
 
 }

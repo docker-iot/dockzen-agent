@@ -4,29 +4,51 @@ import (
 	"bytes"
 	"agent/types/dockzenl"
 	dockzen_api "lib"
+	dockzen_h "include"
 	"encoding/json"
 	"errors"
-	"log"
+	"fmt"
 	"net"
+	"os"
 )
 
 const (
 	DockerLauncherSocket string = "/var/run/dockzen_launcher.sock"
 )
-func DZA_Mon_GetContainersInfo() (dockzen_api.ContainerLists, error) {
-	log.Printf("GetContainersInfo")
 
-	var info dockzen_api.ContainerLists
-	var err error
-	var send_str []byte
+func DZA_Mon_GetContainersInfo(containersInfo *dockzen_h.Containers_info) int {
 
-	info, err = dockzen_api.GetContainerListsInfo()
+	fmt.Println("DZA_Mon_GetContainersInfo call !! ")
 
-	//send_str, err = json.Marshal(info)
+	var ret = dockzen_api.GetContainerListsInfo(containersInfo)
 
-	log.Printf(string(send_str))
+	return ret
+}
 
-	return info, err
+func GetHardwareAddress() (string, error) {
+
+	currentNetworkHardwareName := "eth0"
+	netInterface, err := net.InterfaceByName(currentNetworkHardwareName)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	name := netInterface.Name
+	macAddress := netInterface.HardwareAddr
+
+	fmt.Println("Hardware name : ", string(name))
+
+	hwAddr, err := net.ParseMAC(macAddress.String())
+
+	if err != nil {
+		fmt.Println("No able to parse MAC address : ", err)
+		os.Exit(-1)
+	}
+
+	fmt.Println("Physical hardware address : ", hwAddr.String())
+
+	return hwAddr.String(), nil
 }
 
 func readData(client net.Conn) ([]byte, error) {
@@ -40,7 +62,7 @@ func readData(client net.Conn) ([]byte, error) {
 			break
 		}
 
-		log.Printf("nr size [%d]", nr)
+		fmt.Println("nr size ", nr)
 		if nr == 0 {
 			break
 		}
@@ -49,22 +71,22 @@ func readData(client net.Conn) ([]byte, error) {
 		data = append(data, dataBuf...)
 	}
 
-	log.Printf("receive data[%s]\n", string(data))
+	fmt.Println("receive data : ", string(data))
 	//delete null character
 	withoutNull := bytes.Trim(data, "\x00")
 
 	rcv := dockzenl.Cmd{}
 	err := json.Unmarshal([]byte(withoutNull), &rcv)
-	log.Printf("rcv.Cmd = %s", rcv.Cmd)
+	fmt.Println("rcv.Cmd = ", rcv.Cmd)
 
 	if rcv.Cmd == "GetContainersInfo" {
-		log.Printf("Success\n")
+		fmt.Println("Success")
 		return withoutNull, nil
 	} else if rcv.Cmd == "UpdateImage" {
-		log.Printf("Success\n")
+		fmt.Println("Success")
 		return withoutNull, nil
 	} else {
-		log.Printf("error commnad[%s]\n", err)
+		fmt.Println("error commnad = ", err)
 	}
 
 	return nil, errors.New("Error Cmd from Dockerl")
@@ -93,7 +115,7 @@ func writeData(client net.Conn, cmd string, m map[string]string) error {
 		return errors.New("Invalid Cmd")
 	}
 
-	log.Printf(string(send_str))
+	//log.Printf(string(send_str))
 	length := len(send_str)
 
 	message := make([]byte, 0, length)
@@ -101,14 +123,14 @@ func writeData(client net.Conn, cmd string, m map[string]string) error {
 
 	_, err = client.Write([]byte(message))
 	if err != nil {
-		log.Printf("error: %v\n", err)
+		//log.Printf("error: %v\n", err)
 		return err
 	}
 
-	log.Printf("sent: %s\n", message)
+	//log.Printf("sent: %s\n", message)
 	err = client.(*net.UnixConn).CloseWrite()
 	if err != nil {
-		log.Printf("error: %v\n", err)
+		//log.Printf("error: %v\n", err)
 		return err
 
 	}
