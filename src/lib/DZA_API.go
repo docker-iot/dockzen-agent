@@ -3,27 +3,18 @@ package lib
 import (
 	"fmt"
 	dockzen_h "include"
+	"unsafe"
 )
 
 /*
 #include <dockzen.h>
 
-void _C_CallbackContainerUpdate(int status, void* user_data);
-
-typedef struct{
-	void * cb_fcn;
-}update_cb;
+void _C_CallbackContainerUpdate(int status);
 
 */
 import "C"
 
 type ContainerUpdateCB func(int)
-
-type UserDataCB struct {
-	fn ContainerUpdateCB
-}
-
-var fn_cb ContainerUpdateCB
 
 func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 
@@ -50,27 +41,17 @@ func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 }
 
 //export _GO_CallbackContainerUpdate
-func _GO_CallbackContainerUpdate(status C.int, user_data C.int) {
-	fmt.Println("updateCallback status = ", status)
-
-	fn_cb(int(status))
+func _GO_CallbackContainerUpdate(c_status C.int, callback unsafe.Pointer) {
+	update_callback := *(*func(int))(callback)
+	update_callback(int(c_status))
 }
 
 func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, callback ContainerUpdateCB) int {
 	fmt.Println(">>>>>>>>>> UpdateContainer()...")
+	var C_update_info C.container_update_s
+	C_update_info.id = C.CString("container_update.ImageName")
 
-	//var C_update_info C.container_update_s
-	//C_update_info.id = C.CString("container_update.ID")
-
-	//var user_data UserDataCB
-	//user_data.fn = callback
-
-	//fn_cb = callback
-
-	//var ret = C.dockzen_update_container(&C_update_info, ((C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate))), unsafe.Pointer(&user_data))
-
-	//fmt.Println("ret = ", ret)
-	var ret int
+	var ret = C.dockzen_update_container(&C_update_info, (C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate)), (unsafe.Pointer(&callback)))
 
 	return int(ret)
 

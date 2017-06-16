@@ -33,7 +33,7 @@ typedef struct{
 
 
 //typedef void (*container_update_cb) (char* status, void* user_data);
-typedef void (*container_update_cb) (int status, int user_data);
+typedef void (*container_update_cb) (int status, void * user_data);
 
 
 /**
@@ -43,6 +43,6 @@ typedef void (*container_update_cb) (int status, int user_data);
 int dockzen_get_containers_info(containers_info_s *c_info);
 
 
-int dockzen_update_container(container_update_s *container_update, container_update_cb callback, void* user_data);
+int dockzen_update_container(container_update_s *container_update, container_update_cb callback, void * user_data);
 
 #endif
