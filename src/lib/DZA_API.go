@@ -7,6 +7,8 @@ import (
 )
 
 /*
+#cgo CFLAGS: -I.
+#cgo LDFLAGS: -L. ${SRCDIR}/libdockzen.a ${SRCDIR}/libjson-c.a
 #include <dockzen.h>
 
 void _C_CallbackContainerUpdate(int status);
