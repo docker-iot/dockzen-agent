@@ -23,17 +23,29 @@ typedef struct{
 	}container[10];			/**< Max Count constraint */
 }containers_info_s;
 
-
 /**
  *  ContainersInfo type definition.
  */
 typedef struct{
-	char * id;
+	char * container_name;
+	char * image_name;
 }container_update_s;
 
+typedef struct{
+	char * container_name;
+	char * image_name_prev;
+	char * image_name_new;
+	char *status;
+}container_update_res_s;
+
+typedef struct{
+	char * container_name;
+	char * image_name;
+	char * status;
+}container_update_cb_s;
 
 //typedef void (*container_update_cb) (char* status, void* user_data);
-typedef void (*container_update_cb) (int status, void * user_data);
+typedef void (*container_update_cb) (container_update_cb_s * status, void * user_data);
 
 
 /**
@@ -43,6 +55,6 @@ typedef void (*container_update_cb) (int status, void * user_data);
 int dockzen_get_containers_info(containers_info_s *c_info);
 
 
-int dockzen_update_container(container_update_s *container_update, container_update_cb callback, void * user_data);
+int dockzen_update_container(container_update_s *container_update, container_update_res_s *container_update_return, container_update_cb callback, void * user_data);
 
 #endif

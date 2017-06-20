@@ -4,7 +4,6 @@ import (
 	dockzen_h "include"
 	"fmt"
 	"log"
-	"services"
 	"golang.org/x/net/websocket"
 	"io"
 	"net"
@@ -38,6 +37,7 @@ func WI_init(){
 	for {
 
 		go ws_mainLoop()
+		//go we_test()
 
 		<-done
 		time.Sleep(time.Second)
@@ -45,54 +45,31 @@ func WI_init(){
 
 }
 
-func wsGetContainerLists(ws *websocket.Conn) (err error) {
-	var containersInfo dockzen_h.Containers_info
-	var ret = services.DZA_Mon_GetContainersInfo(&containersInfo)
+func we_test() {
+	//var containersInfo dockzen_h.Containers_info
+	//var ret = services.DZA_Mon_GetContainersInfo(&containersInfo)
 
-	if ret != 0 {
-		fmt.Println("GetContainersInfo error = ", ret)
-	} else {
-		var send_info ContainerList_info
-		send_info.Cmd = "GetContainersInfo"
-		send_info.ContainerCount = int(containersInfo.Count)
-		send_info.DeviceID, err = services.GetHardwareAddress()
+	//fmt.Println("containerInfo = ", containersInfo)
+	//fmt.Println("ret = ", ret)
+	 //send_info, ret := wsGetContainerLists()
 
-		fmt.Println("DevicedID = ", send_info.DeviceID)
+	 //fmt.Println("containerinfo ws_test = ", send_info)
 
-		for i := 0; i < send_info.ContainerCount; i++ {
-			send_info.Container[i].ID = containersInfo.Containerinfo[i].ID
-			send_info.Container[i].Name = containersInfo.Containerinfo[i].Name
-			send_info.Container[i].ImageName = containersInfo.Containerinfo[i].ImageName
-			send_info.Container[i].Status = containersInfo.Containerinfo[i].Status
-		}
-		fmt.Println("ContainerInfo -> ", send_info)
-		websocket.JSON.Send(ws, send_info)
-	}
+	var data dockzen_h.ContainerUpdateInfo
 
-	return nil
-}
+	data.Container_Name = "tizen"
+	data.Image_Name = "tizen_image"
 
-func wsUpdateImage(ws *websocket.Conn, data dockzen_h.ContainerUpdateInfo) (err error) {
-
-	var ret = services.DZA_Update_Do(data)
-
-	fmt.Println("ret = ", ret )
-//	if err1 != nil {
-//		log.Printf("error = %s", err1)
-//		return err1
-//	} else {
-//		log.Printf("send = %s", send)
-//		websocket.JSON.Send(ws, send)
-//	}
-
-	return nil
+	send_update, ret := wsUpdateImage(data)
+	fmt.Println("update ws_test = ", send_update)
+	fmt.Println("ret =", ret)
 }
 
 func parseUpdateParam(msg string) dockzen_h.ContainerUpdateInfo {
 	send := dockzen_h.ContainerUpdateInfo{}
 	json.Unmarshal([]byte(msg), &send)
-	fmt.Println("parsing ContainerName: " + send.ContainerName)
-	fmt.Println("parsing ImageName: " + send.ImageName)
+	fmt.Println("parsing ContainerName: " + send.Container_Name)
+	fmt.Println("parsing ImageName: " + send.Image_Name)
 
 	return send
 }
@@ -120,7 +97,7 @@ func ws_mainLoop() (err error) {
 	messages := make(chan string)
 	go wsReceive(ws, messages)
 
-	name, _ := services.GetHardwareAddress()
+	name, _ := GetHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
 
@@ -135,10 +112,17 @@ func ws_mainLoop() (err error) {
 		case "connected":
 			log.Printf("connected succefully~~")
 		case "GetContainersInfo":
-			wsGetContainerLists(ws)
+			send_info, ret := wsGetContainerLists()
+			if ret == 0 {
+				websocket.JSON.Send(ws, send_info)
+			}
 		case "UpdateImage":
 			log.Printf("command <UpdateImage>")
-			wsUpdateImage(ws, parseUpdateParam(msg))
+			send_update, ret := wsUpdateImage(parseUpdateParam(msg))
+			if ret == 0 {
+				websocket.JSON.Send(ws, send_update)
+			}
+
 		default:
 			log.Printf("add command of {%s}", rcv.Cmd)
 		}

@@ -1,4 +1,5 @@
-export GOPATH := $(shell pwd)
+
+export GOPATH := $(shell pwd):$(shell pwd)/vendor
 
 build:
 	go build -a -ldflags '-extldflags "--static"' agent
