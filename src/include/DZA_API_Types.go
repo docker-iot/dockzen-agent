@@ -14,7 +14,7 @@ type Containers_info struct {
 
 type ContainerUpdateInfo struct {
 	Image_Name     string `json:"ImageName"`
-	Container_Name string `json:"ContainerName"`
+	Container_Name string `json:"Name"`
 }
 
 type ContainerUpdateRes struct {
