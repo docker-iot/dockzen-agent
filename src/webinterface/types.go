@@ -21,3 +21,5 @@ type ws_ContainerUpdateReturn struct {
     DeviceID      string         `json:"DeviceID"`
     UpdateState   string         `json:"UpdateState"`
 }
+
+var __FILE__ = "WEBINTERFACE"

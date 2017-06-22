@@ -1,8 +1,6 @@
 package webinterface
 
 import (
-	dockzen_h "include"
-	"fmt"
 	"log"
 	"golang.org/x/net/websocket"
 	"io"
@@ -15,13 +13,10 @@ import (
 	"encoding/json"
 	"syscall"
 	"time"
+	set "services"
 )
 
-var wss_server_url = "ws://10.113.62.204:4000"
-var wss_server_origin = "ws://10.113.62.204:4000"
-
-//var wss_server_url = "ws://13.124.64.10:4000"
-//var wss_server_origin = "ws://13.124.64.10:4000"
+var wss_prefix = "ws://"
 
 type Command struct {
 	Cmd string `json:"cmd"`
@@ -32,7 +27,7 @@ var done chan bool
 
 func WI_init(){
 
-	log.Println("Web connection start !!!\n")
+	log.Printf("[%s] Web connection start !!!\n", __FILE__)
 
 	for {
 
@@ -45,35 +40,6 @@ func WI_init(){
 
 }
 
-func we_test() {
-	//var containersInfo dockzen_h.Containers_info
-	//var ret = services.DZA_Mon_GetContainersInfo(&containersInfo)
-
-	//fmt.Println("containerInfo = ", containersInfo)
-	//fmt.Println("ret = ", ret)
-	 //send_info, ret := wsGetContainerLists()
-
-	 //fmt.Println("containerinfo ws_test = ", send_info)
-
-	var data dockzen_h.ContainerUpdateInfo
-
-	data.Container_Name = "tizen"
-	data.Image_Name = "tizen_image"
-
-	send_update, ret := wsUpdateImage(data)
-	fmt.Println("update ws_test = ", send_update)
-	fmt.Println("ret =", ret)
-}
-
-func parseUpdateParam(msg string) dockzen_h.ContainerUpdateInfo {
-	send := dockzen_h.ContainerUpdateInfo{}
-	json.Unmarshal([]byte(msg), &send)
-	fmt.Println("parsing ContainerName: " + send.Container_Name)
-	fmt.Println("parsing ImageName: " + send.Image_Name)
-
-	return send
-}
-
 func ws_mainLoop() (err error) {
 
 	go func() {
@@ -82,10 +48,16 @@ func ws_mainLoop() (err error) {
 		return
 	}()
 
-	ws, err := wsProxyDial(wss_server_url, "tcp", wss_server_origin)
+	var server_url = set.GetServerURL("")
+	if server_url == "" {
+		log.Printf("[%s] Server URL error !!!", __FILE__ )
+		return nil
+	}
 
+	var wss_server_url = wss_prefix + server_url
+	ws, err := wsProxyDial(wss_server_url, "tcp", wss_server_url)
 	if err != nil {
-		log.Println("wsProxyDial : ", err)
+		log.Printf("[%s] wsProxyDial : ",__FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return err
 	}
@@ -95,7 +67,7 @@ func ws_mainLoop() (err error) {
 	/* connect test2 : message driven
 	 */
 	messages := make(chan string)
-	go wsReceive(ws, messages)
+	go wsReceive(wss_server_url, ws, messages)
 
 	name, _ := GetHardwareAddress()
 
@@ -106,42 +78,42 @@ func ws_mainLoop() (err error) {
 
 		rcv := Command{}
 		json.Unmarshal([]byte(msg), &rcv)
-		fmt.Println(rcv.Cmd)
+		log.Printf(rcv.Cmd)
 
 		switch rcv.Cmd {
 		case "connected":
-			log.Printf("connected succefully~~")
+			log.Printf("[%s] connected succefully~~", __FILE__)
 		case "GetContainersInfo":
 			send_info, ret := wsGetContainerLists()
 			if ret == 0 {
 				websocket.JSON.Send(ws, send_info)
 			}
 		case "UpdateImage":
-			log.Printf("command <UpdateImage>")
+			log.Printf("[%s] command <UpdateImage>", __FILE__)
 			send_update, ret := wsUpdateImage(parseUpdateParam(msg))
 			if ret == 0 {
 				websocket.JSON.Send(ws, send_update)
 			}
 
 		default:
-			log.Printf("add command of {%s}", rcv.Cmd)
+			log.Printf("[%s] add command of {%s}", __FILE__, rcv.Cmd)
 		}
 
 	}
 }
 
-func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
+func wsReceive(wss_server_url string, ws *websocket.Conn, chan_msg chan string) (err error) {
 
 	var read_buf string
 
 	defer func() {
 		// recover from panic if one occured. Set err to nil otherwise.
 		for {
-			log.Printf("panic recovery !!!")
-			ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_origin)
+			log.Printf("[%s] panic recovery !!!", __FILE__)
+			ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_url)
 
 			if err != nil {
-				log.Printf("wsProxyDial : %s ", err)
+				log.Printf("[%s] wsProxyDial : %s ", __FILE__, err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -152,18 +124,16 @@ func wsReceive(ws *websocket.Conn, chan_msg chan string) (err error) {
 	for {
 		err = websocket.Message.Receive(ws, &read_buf)
 		if err != nil {
-			log.Printf("wsReceive : %s", err)
+			log.Printf("[%s] wsReceive : %s", __FILE__, err)
 			syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 			break
 		}
-		log.Printf("received: %s", read_buf)
+		log.Printf("[%s] received: %s", __FILE__, read_buf)
 		chan_msg <- read_buf
 	}
 
 	return err
 }
-
-
 
 func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 	send := ConnectReq{}
@@ -178,7 +148,7 @@ func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 
 func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) {
 
-	log.Printf("http_proxy {%s}\n", os.Getenv("HTTP_PROXY"))
+	log.Printf("[%s] http_proxy {%s}\n", __FILE__, os.Getenv("HTTP_PROXY"))
 
 	// comment out in case of testing without proxy
 	if strings.Contains(url_, "10.113.") {
@@ -191,7 +161,7 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 
 	purl, err := url.Parse(os.Getenv("HTTP_PROXY"))
 	if err != nil {
-		log.Println("Parse : ", err)
+		log.Printf("[%s] Parse : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
@@ -201,7 +171,7 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 	log.Printf("====================================")
 	config, err := websocket.NewConfig(url_, origin)
 	if err != nil {
-		log.Println("NewConfig : ", err)
+		log.Printf("[%s] NewConfig : ", __FILE__,  err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
@@ -215,7 +185,7 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 	log.Printf("====================================")
 	client, err := wsHttpConnect(purl.Host, url_)
 	if err != nil {
-		log.Println("HttpConnect : ", err)
+		log.Printf("[%s] HttpConnect : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
@@ -227,22 +197,22 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 }
 
 func wsHttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
-	log.Println("proxy =", proxy)
+	log.Printf("[%s] proxy =", __FILE__, proxy)
 	proxy_tcp_conn, err := net.Dial("tcp", proxy)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("proxy_tcp_conn =", proxy_tcp_conn)
-	log.Println("url_ =", url_)
+	log.Printf("[%s] proxy_tcp_conn =", __FILE__, proxy_tcp_conn)
+	log.Printf("[%s] url_ =", __FILE__, url_)
 
 	turl, err := url.Parse(url_)
 	if err != nil {
-		log.Println("Parse : ", err)
+		log.Printf("[%s] Parse : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
 
-	log.Println("proxy turl.Host =", string(turl.Host))
+	log.Printf("[%s] proxy turl.Host =", __FILE__, string(turl.Host))
 
 	req := http.Request{
 		Method: "CONNECT",
@@ -253,15 +223,15 @@ func wsHttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 	proxy_http_conn := httputil.NewProxyClientConn(proxy_tcp_conn, nil)
 	//cc := http.NewClientConn(proxy_tcp_conn, nil)
 
-	log.Println("proxy_http_conn =", proxy_http_conn)
+	log.Printf("[%s] proxy_http_conn =", __FILE__, proxy_http_conn)
 
 	resp, err := proxy_http_conn.Do(&req)
 	if err != nil && err != httputil.ErrPersistEOF {
-		log.Println("ErrPersistEOF : ", err)
+		log.Printf("[%s] ErrPersistEOF : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
-	log.Println("proxy_http_conn<resp> =", (resp))
+	log.Printf("[%s] proxy_http_conn<resp> =", __FILE__, (resp))
 
 	rwc, _ := proxy_http_conn.Hijack()
 

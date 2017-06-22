@@ -1,9 +1,10 @@
 package webinterface
 
 import (
-  "fmt"
+  "log"
   dockzen_h "include"
   "services"
+  "encoding/json"
 )
 
 func wsGetContainerLists() (ws_ContainerList_info, int) {
@@ -12,7 +13,7 @@ func wsGetContainerLists() (ws_ContainerList_info, int) {
 	var ret = services.DZA_Mon_GetContainersInfo(&containersInfo)
 
 	if ret != 0 {
-		fmt.Println("GetContainersInfo error = ", ret)
+		log.Printf("[%s] GetContainersInfo error = ", __FILE__, ret)
 	} else {
 
     var err error
@@ -21,19 +22,28 @@ func wsGetContainerLists() (ws_ContainerList_info, int) {
 		send_info.DeviceID, err = GetHardwareAddress()
     if err != nil{
       ret = -1
-      fmt.Println("HardwareAddress error = ", err)
+      log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
     }
 
-		fmt.Println("DevicedID = ", send_info.DeviceID)
+		log.Printf("[%s] DevicedID = ", __FILE__, send_info.DeviceID)
 
 		for i := 0; i < send_info.ContainerCount; i++ {
 			send_info.Container = append(send_info.Container, containersInfo.Containerinfo[i]);
 		}
 
-		fmt.Println("ContainerInfo -> ", send_info)
+		log.Printf("[%s] ContainerInfo -> ", __FILE__, send_info)
 	}
 
 	return send_info, ret
+}
+
+func parseUpdateParam(msg string) dockzen_h.ContainerUpdateInfo {
+	send := dockzen_h.ContainerUpdateInfo{}
+	json.Unmarshal([]byte(msg), &send)
+	log.Printf("[%s] parsing ContainerName: ", __FILE__, send.Container_Name)
+	log.Printf("[%s] parsing ImageName: ", __FILE__, send.Image_Name)
+
+	return send
 }
 
 func wsUpdateImage(data dockzen_h.ContainerUpdateInfo) (ws_ContainerUpdateReturn, int) {
@@ -41,12 +51,11 @@ func wsUpdateImage(data dockzen_h.ContainerUpdateInfo) (ws_ContainerUpdateReturn
   var send_Return ws_ContainerUpdateReturn
 	var ret = services.DZA_Update_Do(data, &updateReturn)
 
-	fmt.Println("wsUpdateImage> updateReturn->status = ", updateReturn.Status)
+	log.Printf("[%s] updateReturn->status = ", __FILE__, updateReturn.Status)
 
 	if ret != 0{
-		fmt.Println("UpdateInfo error = ", ret)
+		log.Printf("[%s] UpdateInfo error = ", __FILE__, ret)
 	} else {
-
     var err error
 		send_Return.Cmd = "UpdateImage"
 		send_Return.DeviceID, err = GetHardwareAddress()
@@ -54,9 +63,9 @@ func wsUpdateImage(data dockzen_h.ContainerUpdateInfo) (ws_ContainerUpdateReturn
 
     if err != nil {
       ret = -1
-      fmt.Println("HardwareAddress error = ", err)
+      log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
     }
-		fmt.Println("wsUpdateImage> send_Return = ", send_Return)
+		log.Printf("[%s] wsUpdateImage> send_Return = ", __FILE__, send_Return)
 	}
 
 	return send_Return, ret

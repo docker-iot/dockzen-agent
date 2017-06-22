@@ -1,7 +1,7 @@
 package webinterface
 
 import (
-  "fmt"
+  "log"
   "net"
   "os"
 )
@@ -12,22 +12,22 @@ func GetHardwareAddress() (string, error) {
 	netInterface, err := net.InterfaceByName(currentNetworkHardwareName)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("[%s] err = ",__FILE__, err)
 	}
 
 	name := netInterface.Name
 	macAddress := netInterface.HardwareAddr
 
-	fmt.Println("Hardware name : ", string(name))
+	log.Printf("[%s] Hardware name : ", __FILE__, string(name))
 
 	hwAddr, err := net.ParseMAC(macAddress.String())
 
 	if err != nil {
-		fmt.Println("No able to parse MAC address : ", err)
+		log.Printf("[%s] No able to parse MAC address : ", __FILE__, err)
 		os.Exit(-1)
 	}
 
-	fmt.Println("Physical hardware address : ", hwAddr.String())
+	log.Printf("[%s] Physical hardware address : ", __FILE__, hwAddr.String())
 
 	return hwAddr.String(), nil
 }
