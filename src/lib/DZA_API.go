@@ -36,7 +36,7 @@ func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 
 	log.Printf("[%s] ret = ", __FILE__, ret)
 
-	if ret == 0 {
+	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
 		containers_info.Count = int(C_containers_info.count)
 		var container dockzen_h.Container
 		for i := 0; i<containers_info.Count; i++ {
@@ -120,10 +120,12 @@ func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res 
 
 	var ret = C.dockzen_update_container(&C_update_info, &C_update_res, (C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate)), unsafe.Pointer(user_data))
 
-	update_res.Container_Name = C.GoString(C_update_res.container_name)
-	update_res.Image_name_Prev = C.GoString(C_update_res.image_name_prev)
-	update_res.Image_name_New = C.GoString(C_update_res.image_name_new)
-	update_res.Status = C.GoString(C_update_res.status)
+	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
+		update_res.Container_Name = C.GoString(C_update_res.container_name)
+		update_res.Image_name_Prev = C.GoString(C_update_res.image_name_prev)
+		update_res.Image_name_New = C.GoString(C_update_res.image_name_new)
+		update_res.Status = C.GoString(C_update_res.status)
+	}
 
 	defer func(){
 		if unsafe.Pointer(C_update_info.container_name) != nil {
@@ -151,6 +153,6 @@ func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res 
 			C_update_res.status = nil
 		}
 	}()
-	return int(ret)
 
+	return int(ret)
 }

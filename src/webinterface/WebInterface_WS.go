@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 	set "services"
+	dockzen_h "include"
 )
 
 var wss_prefix = "ws://"
@@ -85,13 +86,13 @@ func ws_mainLoop() (err error) {
 			log.Printf("[%s] connected succefully~~", __FILE__)
 		case "GetContainersInfo":
 			send_info, ret := wsGetContainerLists()
-			if ret == 0 {
+			if ret == dockzen_h.DOCKZEN_ERROR_NONE {
 				websocket.JSON.Send(ws, send_info)
 			}
 		case "UpdateImage":
 			log.Printf("[%s] command <UpdateImage>", __FILE__)
 			send_update, ret := wsUpdateImage(parseUpdateParam(msg))
-			if ret == 0 {
+			if ret == dockzen_h.DOCKZEN_ERROR_NONE {
 				websocket.JSON.Send(ws, send_update)
 			}
 
