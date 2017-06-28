@@ -1,6 +1,6 @@
 export GOPATH := $(shell pwd)/../../:$(shell pwd)/../../../include/
 
-all:setting
+all:api
 
-setting:
-	go test 
+api:
+	go test
