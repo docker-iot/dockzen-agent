@@ -2,7 +2,7 @@
 export GOPATH := $(shell pwd):$(shell pwd)/vendor
 
 build:
-	go build -a -ldflags '-extldflags "--static"' agent
+	go build -a -ldflags '-extldflags "--static"' ${BINARY_NAME}
 
 clean:
-	rm -rf agent
+	rm -rf ${BINARY_NAME}
