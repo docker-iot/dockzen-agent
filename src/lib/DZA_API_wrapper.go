@@ -3,7 +3,7 @@ package lib
 /*
 #include <stdlib.h>
 #include <stdio.h>
-#include "dockzen.h"
+#include "install/include/dockzen/dockzen.h"
 
 typedef struct{
   void *callback;

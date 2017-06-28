@@ -1,0 +1,11 @@
+prefix=/home/jiehwan/playground/dockerfw/git/json-c/install
+exec_prefix=/home/jiehwan/playground/dockerfw/git/json-c/install/amd64
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: json-c
+Description: JSON implementation in C
+Version: 0.12.1
+Requires: 
+Libs:  -L${libdir} -ljson-c
+Cflags: -I${includedir}/json-c

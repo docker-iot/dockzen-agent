@@ -7,11 +7,11 @@ import (
 )
 
 /*
-#cgo CFLAGS: -I.
-#cgo LDFLAGS: -L. ${SRCDIR}/libdockzen.a ${SRCDIR}/libjson-c.a
+//#cgo CFLAGS: -I. ${SRCDIR}/install/include/dockzen/ ${SRCDIR}/install/include/json-c/
+#cgo LDFLAGS: -L. ${SRCDIR}/install/arm/lib/libdockzen.a ${SRCDIR}/install/arm/lib/libjson-c.a
 
 #include <stdlib.h>
-#include <dockzen.h>
+#include "install/include/dockzen/dockzen.h"
 
 typedef struct{
 	void *callback;
