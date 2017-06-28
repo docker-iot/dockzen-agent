@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dockzen.h"
-#include "dockzen_types.h"
+#include "../src/lib/dockzen.h"
+#include "../src/lib/dockzen_types.h"
 
 /**
  *  capi_GetContainersInfo interface
@@ -36,10 +36,10 @@ API int dockzen_update_container(container_update_s *container_update, container
 	container_update_cb_s * updateinfo;
 
 	updateinfo = (container_update_cb_s *)malloc(sizeof(container_update_cb_s));
-	
-	
+
+
 	updateinfo->container_name = (char *)malloc(strlen(container_update->container_name) +1);
-	
+
 	memset(updateinfo->container_name, 0x00, strlen(container_update->container_name)+1);
 	sprintf(updateinfo->container_name, "%s", container_update->container_name);
 

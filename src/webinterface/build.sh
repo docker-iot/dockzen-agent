@@ -2,7 +2,7 @@ echo "****************************"
 export GOARCH=amd64
 
 mv ../lib/libdockzen.a ../lib/libdockzen.a_
-gcc -c -o ../lib/dockzen_test.o ../lib/dockzen_test.c
+gcc -c -o ../lib/dockzen_test.o ../../test/dockzen_test.c
 ar cr ../lib/libdockzen.a ../lib/dockzen_test.o
 rm -rf ../lib/dockzen_test.o
 
