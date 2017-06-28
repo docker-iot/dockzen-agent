@@ -33,7 +33,6 @@ func WI_init(){
 	for {
 
 		go ws_mainLoop()
-		//go we_test()
 
 		<-done
 		time.Sleep(time.Second)
@@ -85,15 +84,20 @@ func ws_mainLoop() (err error) {
 		case "connected":
 			log.Printf("[%s] connected succefully~~", __FILE__)
 		case "GetContainersInfo":
-			send_info, ret := wsGetContainerLists()
+			send_info, ret := WS_GetContainerLists()
 			if ret == dockzen_h.DOCKZEN_ERROR_NONE {
 				websocket.JSON.Send(ws, send_info)
 			}
 		case "UpdateImage":
 			log.Printf("[%s] command <UpdateImage>", __FILE__)
-			send_update, ret := wsUpdateImage(parseUpdateParam(msg))
-			if ret == dockzen_h.DOCKZEN_ERROR_NONE {
-				websocket.JSON.Send(ws, send_update)
+			update_msg, r := ParseUpdateParam(msg)
+			if r == nil {
+				send_update, ret := WS_UpdateImage(update_msg)
+				if ret == dockzen_h.DOCKZEN_ERROR_NONE {
+					websocket.JSON.Send(ws, send_update)
+				}
+			} else {
+				log.Printf("[%s] UpdateImage message null !!!")
 			}
 
 		default:

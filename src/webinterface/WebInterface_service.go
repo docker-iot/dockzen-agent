@@ -7,7 +7,7 @@ import (
   "encoding/json"
 )
 
-func wsGetContainerLists() (ws_ContainerList_info, int) {
+func WS_GetContainerLists() (ws_ContainerList_info, int) {
 	var containersInfo dockzen_h.Containers_info
   var send_info ws_ContainerList_info
 	var ret = services.DZA_Mon_GetContainersInfo(&containersInfo)
@@ -37,16 +37,18 @@ func wsGetContainerLists() (ws_ContainerList_info, int) {
 	return send_info, ret
 }
 
-func parseUpdateParam(msg string) dockzen_h.ContainerUpdateInfo {
+func ParseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
 	send := dockzen_h.ContainerUpdateInfo{}
-	json.Unmarshal([]byte(msg), &send)
-	log.Printf("[%s] parsing ContainerName: ", __FILE__, send.Container_Name)
-	log.Printf("[%s] parsing ImageName: ", __FILE__, send.Image_Name)
+	r := json.Unmarshal([]byte(msg), &send)
+  if r == nil {
+	   log.Printf("[%s] parsing ContainerName: ", __FILE__, send.Container_Name)
+	 log.Printf("[%s] parsing ImageName: ", __FILE__, send.Image_Name)
+  }
 
-	return send
+	return send, r
 }
 
-func wsUpdateImage(data dockzen_h.ContainerUpdateInfo) (ws_ContainerUpdateReturn, int) {
+func WS_UpdateImage(data dockzen_h.ContainerUpdateInfo) (ws_ContainerUpdateReturn, int) {
 	var updateReturn dockzen_h.ContainerUpdateRes
   var send_Return ws_ContainerUpdateReturn
 	var ret = services.DZA_Update_Do(data, &updateReturn)
