@@ -23,6 +23,26 @@ type Command struct {
 	Cmd string `json:"cmd"`
 }
 
+type SendChannel struct{
+	containers chan ws_ContainerList_info
+	updateinfo chan ws_ContainerUpdateReturn
+}
+
+type ReceiveChannel struct{
+	containers chan bool
+	updateinfo chan dockzen_h.ContainerUpdateInfo
+}
+
+type Containers_Channel struct{
+	receive chan bool
+	send chan ws_ContainerList_info
+}
+
+type Update_Channel struct{
+	receive chan dockzen_h.ContainerUpdateInfo
+	send chan ws_ContainerUpdateReturn
+}
+
 var chSignal chan os.Signal
 var done chan bool
 
@@ -40,42 +60,34 @@ func WI_init(){
 
 }
 
-func ws_mainLoop() (err error) {
-
-	go func() {
-		<-chSignal
-		done <- true
-		return
-	}()
-
-	var server_url = set.GetServerURL("")
-	if server_url == "" {
-		log.Printf("[%s] Server URL error !!!", __FILE__ )
-		return nil
-	}
+func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 	var wss_server_url = wss_prefix + server_url
-	ws, err := wsProxyDial(wss_server_url, "tcp", wss_server_url)
+	ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_url)
+
 	if err != nil {
 		log.Printf("[%s] wsProxyDial : ",__FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
-		return err
+		return nil, err
 	}
-
-	defer ws.Close()
-
-	/* connect test2 : message driven
-	 */
-	messages := make(chan string)
-	go wsReceive(wss_server_url, ws, messages)
 
 	name, _ := GetHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
+	if err != nil {
+		log.Printf("[%s] WS_Server_Connect error = ", err)
+		return ws, err
+	}
+
+	return ws, nil
+
+}
+
+func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 
 	for {
 		msg := <-messages
-
+		log.Printf("[%s] MESSAGE !!! ", __FILE__)
 		rcv := Command{}
 		json.Unmarshal([]byte(msg), &rcv)
 		log.Printf(rcv.Cmd)
@@ -84,18 +96,12 @@ func ws_mainLoop() (err error) {
 		case "connected":
 			log.Printf("[%s] connected succefully~~", __FILE__)
 		case "GetContainersInfo":
-			send_info, ret := WS_GetContainerLists()
-			if ret == dockzen_h.DOCKZEN_ERROR_NONE {
-				websocket.JSON.Send(ws, send_info)
-			}
+				receive_channel.containers <-true
 		case "UpdateImage":
 			log.Printf("[%s] command <UpdateImage>", __FILE__)
 			update_msg, r := ParseUpdateParam(msg)
 			if r == nil {
-				send_update, ret := WS_UpdateImage(update_msg)
-				if ret == dockzen_h.DOCKZEN_ERROR_NONE {
-					websocket.JSON.Send(ws, send_update)
-				}
+					receive_channel.updateinfo <- update_msg
 			} else {
 				log.Printf("[%s] UpdateImage message null !!!")
 			}
@@ -107,7 +113,68 @@ func ws_mainLoop() (err error) {
 	}
 }
 
-func wsReceive(wss_server_url string, ws *websocket.Conn, chan_msg chan string) (err error) {
+func ws_mainLoop() (err error) {
+
+	go func() {
+		<-chSignal
+		done <- true
+		return
+	}()
+
+	var server_url = set.GetServerURL("")
+	if server_url == "" {
+		log.Printf("[%s] Server URL Error !! ", __FILE__)
+		return
+	}
+
+	ws, err := WS_Server_Connect(server_url)
+
+	messages := make(chan string)
+	go wsReceive(server_url, ws, messages)
+
+	var send_channel SendChannel
+	send_channel.containers = make(chan ws_ContainerList_info)
+	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn)
+
+	go WS_SendMsg(ws, send_channel)
+
+	var container_ch Containers_Channel
+	container_ch.receive = make(chan bool)
+	container_ch.send = send_channel.containers
+
+	var update_ch Update_Channel
+	update_ch.receive = make(chan dockzen_h.ContainerUpdateInfo)
+	update_ch.send = send_channel.updateinfo
+
+	for i:= 0; i<3;i++{
+		go WS_GetContainerLists(container_ch)
+		go WS_UpdateImage(update_ch)
+	}
+
+	var receive_channel ReceiveChannel
+	receive_channel.containers = container_ch.receive
+	receive_channel.updateinfo = update_ch.receive
+	//go WS_UpdateImage(update_msg, send_channel.updateinfo)
+
+	defer ws.Close()
+	WS_MessageLoop(messages, receive_channel)
+
+	return nil
+}
+
+func WS_SendMsg(ws *websocket.Conn, send_channel SendChannel){
+	for{
+		select{
+		case send_msg:= <-send_channel.containers:
+			log.Printf("[%s] containers sendMessage= ", __FILE__, send_msg)
+			websocket.JSON.Send(ws, send_msg)
+		case send_msg:= <-send_channel.updateinfo:
+			log.Printf("[%s] update sendMessage=", __FILE__, send_msg)
+		}
+	}
+}
+
+func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err error) {
 
 	var read_buf string
 
@@ -115,7 +182,7 @@ func wsReceive(wss_server_url string, ws *websocket.Conn, chan_msg chan string) 
 		// recover from panic if one occured. Set err to nil otherwise.
 		for {
 			log.Printf("[%s] panic recovery !!!", __FILE__)
-			ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_url)
+			ws, err = wsProxyDial(server_url, "tcp", server_url)
 
 			if err != nil {
 				log.Printf("[%s] wsProxyDial : %s ", __FILE__, err)
