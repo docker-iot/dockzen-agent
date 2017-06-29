@@ -3,27 +3,19 @@ package services
 import (
   "testing"
   "log"
+  "unsafe"
   dockzen_h "include"
 )
 
-func TestDZA_Update_Do(t *testing.T){
-  log.Printf("[TEST] ========== DZA_Update_Do test code ===========")
-  var updateReturn dockzen_h.ContainerUpdateRes
-  var updateinfo dockzen_h.ContainerUpdateInfo
-  updateinfo.Image_Name = "tizen_headless:v0.2"
-  updateinfo.Container_Name = "tizen"
+func Test__Updatecallback(t *testing.T){
+  log.Printf("[TEST] ========== Updatecallback test code ===========")
+  var user_data update_userData
+  var status dockzen_h.Container_update_cb_s
+  user_data.Container_Name = "tizen_test"
+  status.Container_name = "tizen_test"
+  status.Image_name = "test_headless:v0.1"
+  status.Status = "running"
 
+  __Updatecallback(status ,unsafe.Pointer(&user_data))
 
-  var ret = DZA_Update_Do(updateinfo, &updateReturn)
-
-
-  if ret != 0{
-    t.Errorf("[TEST] UpdateContainer ret =", ret)
-  }else{
-    log.Printf("[TEST] updateReturn!!!!")
-    log.Printf("[TEST] Container_name = ",updateReturn.Container_Name)
-    log.Printf("[TEST] Image_name_prev = ", updateReturn.Image_name_Prev)
-    log.Printf("[TEST] Image_name_new = ", updateReturn.Image_name_New)
-    log.Printf("[TEST] status = ", updateReturn.Status)
-  }
 }

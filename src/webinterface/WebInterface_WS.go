@@ -133,8 +133,8 @@ func ws_mainLoop() (err error) {
 	go wsReceive(server_url, ws, messages)
 
 	var send_channel SendChannel
-	send_channel.containers = make(chan ws_ContainerList_info)
-	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn)
+	send_channel.containers = make(chan ws_ContainerList_info, 5)
+	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn, 5)
 
 	go WS_SendMsg(ws, send_channel)
 

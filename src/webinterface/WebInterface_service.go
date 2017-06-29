@@ -7,6 +7,25 @@ import (
   "encoding/json"
 )
 
+func WS_GetContainerLists_Res(send_info * ws_ContainerList_info, containersInfo dockzen_h.Containers_info) (err error){
+  send_info.Cmd = "GetContainersInfo"
+  send_info.ContainerCount = int(containersInfo.Count)
+  send_info.DeviceID, err = GetHardwareAddress()
+
+  if err != nil{
+    log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
+    return err
+  }
+
+  for i := 0; i < send_info.ContainerCount; i++ {
+    send_info.Container = append(send_info.Container, containersInfo.Containerinfo[i]);
+  }
+
+  log.Printf("[%s] ContainerInfo -> ", __FILE__, send_info)
+
+  return nil
+}
+
 func WS_GetContainerLists(container_ch Containers_Channel) {
   for{
     msg := <-container_ch.receive
@@ -17,28 +36,11 @@ func WS_GetContainerLists(container_ch Containers_Channel) {
     	if ret != 0 {
     		log.Printf("[%s] GetContainersInfo error = ", __FILE__, ret)
     	} else {
-
-        var err error
-    		send_info.Cmd = "GetContainersInfo"
-    		send_info.ContainerCount = int(containersInfo.Count)
-    		send_info.DeviceID, err = GetHardwareAddress()
-        if err != nil{
-          ret = -1
-          log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
+        err := WS_GetContainerLists_Res(&send_info, containersInfo)
+        if err == nil {
+          container_ch.send <-send_info
         }
-
-    		log.Printf("[%s] DevicedID = ", __FILE__, send_info.DeviceID)
-
-    		for i := 0; i < send_info.ContainerCount; i++ {
-    			send_info.Container = append(send_info.Container, containersInfo.Containerinfo[i]);
-    		}
-
-    		log.Printf("[%s] ContainerInfo -> ", __FILE__, send_info)
-    	}
-
-      //defer close(container_ch.receive)
-
-      container_ch.send <-send_info
+      }
     }
   }
 }
@@ -54,6 +56,20 @@ func ParseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
 	return send, r
 }
 
+func WS_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn, updateReturn dockzen_h.ContainerUpdateRes) (err error){
+  send_Return.Cmd = "UpdateImage"
+  send_Return.DeviceID, err = GetHardwareAddress()
+  send_Return.UpdateState = updateReturn.Status
+
+  if err != nil {
+    log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
+    return err
+  }
+  log.Printf("[%s] wsUpdateImage> send_Return = ", __FILE__, send_Return)
+
+  return nil
+}
+
 func WS_UpdateImage(update_ch Update_Channel){
   for{
     msg := <-update_ch.receive
@@ -67,18 +83,10 @@ func WS_UpdateImage(update_ch Update_Channel){
   	if ret != 0{
   		log.Printf("[%s] UpdateInfo error = ", __FILE__, ret)
   	} else {
-      var err error
-  		send_Return.Cmd = "UpdateImage"
-  		send_Return.DeviceID, err = GetHardwareAddress()
-  		send_Return.UpdateState = updateReturn.Status
-
-      if err != nil {
-        ret = -1
-        log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
+      err := WS_UpdateImage_Res(&send_Return, updateReturn)
+      if err == nil {
+        update_ch.send <- send_Return
       }
-  		log.Printf("[%s] wsUpdateImage> send_Return = ", __FILE__, send_Return)
   	}
-    //defer close(updateinfo)
-    update_ch.send <- send_Return
   }
 }

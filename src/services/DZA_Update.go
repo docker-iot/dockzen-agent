@@ -7,14 +7,14 @@ import (
 	"unsafe"
 )
 
-func __updatecallback(status dockzen_h.Container_update_cb_s, user_data unsafe.Pointer) {
+func __Updatecallback(status dockzen_h.Container_update_cb_s, user_data unsafe.Pointer) {
 	log.Printf("[%s] service Callback OK!!!!", __FILE__)
-	log.Printf("[%s] __updatecallback> status.Container_name = ", __FILE__, status.Container_name)
-	log.Printf("[%s] __updatecallback> status.Image_name = ", __FILE__, status.Image_name)
-	log.Printf("[%s] __updatecallback> status.Status = ", __FILE__, status.Status)
+	log.Printf("[%s] __Updatecallback> status.Container_name = ", __FILE__, status.Container_name)
+	log.Printf("[%s] __Updatecallback> status.Image_name = ", __FILE__, status.Image_name)
+	log.Printf("[%s] __Updatecallback> status.Status = ", __FILE__, status.Status)
 
 	update_data := *(*update_userData)(user_data)
-	log.Printf("[%s] __updatecallback> user_data.ContainerName = ", __FILE__, update_data)
+	log.Printf("[%s] Updatecallback> user_data.ContainerName = ", __FILE__, update_data)
 
 }
 
@@ -26,7 +26,7 @@ func DZA_Update_Do(updateinfo dockzen_h.ContainerUpdateInfo, updateReturn *dockz
 
 	log.Printf("[%s] userdata containerName =", __FILE__, userdata.Container_Name)
 
-	var ret = dockzen_api.UpdateContainer(updateinfo, updateReturn, __updatecallback, unsafe.Pointer(&userdata))
+	var ret = dockzen_api.UpdateContainer(updateinfo, updateReturn, __Updatecallback, unsafe.Pointer(&userdata))
 
 	log.Printf("[%s] updateReturn->status = ", __FILE__, updateReturn.Status)
 	return ret

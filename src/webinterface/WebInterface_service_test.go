@@ -4,7 +4,6 @@ import (
   "log"
   "testing"
   dockzen_h "include"
-  services "services"
 )
 
 func TestParseUpdateParam(t *testing.T){
@@ -19,29 +18,39 @@ func TestParseUpdateParam(t *testing.T){
   }
 }
 
-func TestWS_GetContainerLists(t *testing.T){
+func TestWS_GetContainerLists_Res(t *testing.T){
   log.Printf("[TEST] ========== WS_GetContainerLists test code ===========")
+  var send_info ws_ContainerList_info
   var containersInfo dockzen_h.Containers_info
-	var ret = services.DZA_Mon_GetContainersInfo(&containersInfo)
+  containersInfo.Count = 1
+  containersInfo.Containerinfo = make([]dockzen_h.Container, 1)
+  containersInfo.Containerinfo[0].ID = "1234"
+  containersInfo.Containerinfo[0].Name = "tizen"
+  containersInfo.Containerinfo[0].ImageName = "headless:v0.1"
+  containersInfo.Containerinfo[0].Status = "running"
 
-  if ret != 0 {
-    t.Errorf("[TEST] GetContainerLists error = ", ret)
-  } else{
-    log.Printf("[TEST] GetContainerLists = ", containersInfo)
+  err := WS_GetContainerLists_Res(&send_info, containersInfo)
+
+  if err != nil {
+    t.Errorf("[TEST] WS_GetContainerList_Res error")
+  }else {
+    log.Printf("[TEST] WS_GetContainerList_Res = ", send_info)
   }
 }
 
-func TestWS_UpdateImage(t *testing.T){
+func TestWS_UpdateImage_Res(t *testing.T){
   log.Printf("[TEST] ========== WS_UpdateImage test code ===========")
-  var data dockzen_h.ContainerUpdateInfo
-  data.Image_Name = "headless:v1.0"
-  data.Container_Name = "tizen"
-  update_Return, ret := WS_UpdateImage(data)
+  var send_info ws_ContainerUpdateReturn
+  var updateReturn dockzen_h.ContainerUpdateRes
+  updateReturn.Container_Name = "tizen"
+  updateReturn.Image_name_Prev = "headless:v0.1"
+  updateReturn.Image_name_New = "headless:v0.2"
+  updateReturn.Status = "Running"
+  err := WS_UpdateImage_Res(&send_info, updateReturn)
 
-  if ret != 0 {
-    t.Errorf("[TEST] UpdateImage error = ", ret)
+  if err != nil {
+    t.Errorf("[TEST] WS_UpdateImage_Res error")
   } else {
-    log.Printf("[TEST] UpdateImage return = ", update_Return)
+    log.Printf("[TEST] WS_UpdateImage_Res = ", send_info)
   }
-
 }
