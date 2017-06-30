@@ -1,5 +1,8 @@
-export GOPATH := $(shell gb env | grep GB_SRC_PATH | sed -r "s/\/(\w+)\/src/\/\1/g" | sed -r "s:GB_SRC_PATH=|\"::g")
+
+export GOPATH := $(shell pwd):$(shell pwd)/vendor
+
 build:
-	gb build all 
+	go build -a -ldflags '-extldflags "--static"' ${BINARY_NAME}
+
 clean:
-	rm -rf bin && rm -rf pkg
+	rm -rf ${BINARY_NAME}
