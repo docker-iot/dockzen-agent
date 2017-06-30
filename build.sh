@@ -9,7 +9,6 @@ set -e
 
 export BINARY_NAME="agent"	#fixed~~~~~
 
-export CONTAINER_NAME="agent"
 export CONTAINER_VERSION=":v1.0"
 
 if [ "$1" = "arm" ]; then
@@ -19,7 +18,7 @@ if [ "$1" = "arm" ]; then
         export CGO_ENABLED=1
         export GOARCH=arm GOARM=7
         export CC="arm-linux-gnueabi-gcc"
-
+        export CONTAINER_NAME="dockzen-agent-arm"
         export CGO_LDFLAGS="-L${PWD}/src/lib/install/arm/lib"
 else
 		echo "****************************"
@@ -27,7 +26,7 @@ else
 		echo "****************************"
         export GOARCH=amd64
         export CC="gcc"
-
+        export CONTAINER_NAME="dockzen-agent"
         export CGO_LDFLAGS="-L${PWD}/src/lib/install/amd64/lib"
 fi
 
