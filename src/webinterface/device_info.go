@@ -3,31 +3,44 @@ package webinterface
 import (
   "log"
   "net"
-  "os"
 )
 
+/*
+*	get the unique HW id to distinguish in web dash board.
+*	In temporarily, return mac address althouth it is not proper in bridge network mode.
+*/
 func GetHardwareAddress() (string, error) {
 
-	currentNetworkHardwareName := "eth0"
-	netInterface, err := net.InterfaceByName(currentNetworkHardwareName)
+	var netInterface net.Interface
 
+	// get all Interfaces
+	netInterfaceLists, err := net.Interfaces()
+	
 	if err != nil {
+		// if failed to get Interfaces
 		log.Printf("[%s] err = ",__FILE__, err)
+		return "Error-Hardware-Address", nil
+	} else {
+		// search valid Interface in lists. validation means not-empty Name and Mac
+		for _,v := range netInterfaceLists {
+			if len(v.Name) > 0 && len(v.HardwareAddr) > 0 {
+				netInterface = v;
+				break;
+			}
+		}
+		
+		if netInterface.Index ==0 {
+			// if failed to search valid Interfaces
+			log.Printf("[%s] err = ",__FILE__, "can't find valid interface")
+			for i, v := range netInterfaceLists {
+				log.Printf("[%v] = [%v]", i, v)	
+			}
+			return "Invalid-Hardware-Address", nil
+		} else {
+			log.Printf("[%s] Interface.Name         : %v", __FILE__, netInterface.Name)
+			log.Printf("[%s] Interface.HardwareAddr : %v", __FILE__, netInterface.HardwareAddr.String())
+
+			return netInterface.HardwareAddr.String(), nil
+		}
 	}
-
-	name := netInterface.Name
-	macAddress := netInterface.HardwareAddr
-
-	log.Printf("[%s] Hardware name : ", __FILE__, string(name))
-
-	hwAddr, err := net.ParseMAC(macAddress.String())
-
-	if err != nil {
-		log.Printf("[%s] No able to parse MAC address : ", __FILE__, err)
-		os.Exit(-1)
-	}
-
-	log.Printf("[%s] Physical hardware address : ", __FILE__, hwAddr.String())
-
-	return hwAddr.String(), nil
 }
