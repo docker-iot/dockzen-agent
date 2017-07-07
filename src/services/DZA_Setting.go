@@ -4,24 +4,67 @@ import (
   "log"
   "io/ioutil"
   "encoding/json"
+  "os"
 )
 
-var SERVER_URL_FILE_PATH  = "data/server_url.json"
+var SERVER_URL_FILE_PATH = "data"
+var SERVER_URL_FILE  = "server_url.json"
+var DEFAULT_SERVER_URL = "10.113.62.204:4000"
 
-func GetServerURL(config_path string) string {
+func SetServerURL(url string) int {
+  var config server_config
+  config.Server_URL = url
 
-  if config_path == "" {
-      config_path = SERVER_URL_FILE_PATH
+  if _, err := os.Stat(SERVER_URL_FILE_PATH); os.IsNotExist(err) {
+    err = os.MkdirAll(SERVER_URL_FILE_PATH, 0755)
+    if err != nil {
+      log.Printf("[%s] SetServerURL %s folder create error!!", __FILE__, SERVER_URL_FILE_PATH)
+      return -1
+    }
   }
-  data, err := ioutil.ReadFile(config_path)
+
+  f, err := os.Create(SERVER_URL_FILE_PATH + "/" + SERVER_URL_FILE)
+  if err != nil {
+    log.Printf("[%s] SetServerURL file create error!!!", __FILE__)
+    return -1
+  }
+
+  server_url, err := json.Marshal(config)
+  log.Printf("[%s] SetServerURL server_url=", __FILE__, string(server_url))
+
+  _, err = f.Write(server_url)
+  if err != nil{
+    log.Printf("[%s] SetServerURL file write error", __FILE__)
+    return -1
+  }
+
+  defer f.Close()
+
+  return 0
+
+}
+
+func GetServerURL() string {
+
+  if _, err := os.Stat(SERVER_URL_FILE_PATH); os.IsNotExist(err) {
+      // data/server_url.json does not exist
+      SetServerURL(DEFAULT_SERVER_URL)
+  }
+
+  data, err := ioutil.ReadFile(SERVER_URL_FILE_PATH + "/" + SERVER_URL_FILE)
 
   if err != nil {
-    log.Printf("[%s] server_url.config file error!", __FILE__)
+    log.Printf("[%s] GetServerURL file error!", __FILE__)
     return ""
   }
   var config server_config
 
-  json.Unmarshal([]byte(data), &config)
+  err = json.Unmarshal([]byte(data), &config)
+  if err != nil {
+    log.Printf("[%s] GetServerURL URL error!!!!", __FILE__)
+    return ""
+  }
+  
   log.Printf("[%s] Server URL = %s", __FILE__, config.Server_URL)
 
   return config.Server_URL

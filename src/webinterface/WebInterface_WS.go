@@ -121,7 +121,7 @@ func ws_mainLoop() (err error) {
 		return
 	}()
 
-	var server_url = set.GetServerURL("")
+	var server_url = set.GetServerURL()
 	if server_url == "" {
 		log.Printf("[%s] Server URL Error !! ", __FILE__)
 		return
