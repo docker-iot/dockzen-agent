@@ -46,8 +46,9 @@ func SetServerURL(url string) int {
 
 func GetServerURL() string {
 
-  if _, err := os.Stat(SERVER_URL_FILE_PATH); os.IsNotExist(err) {
+  if _, err := os.Stat(SERVER_URL_FILE_PATH + "/" + SERVER_URL_FILE); os.IsNotExist(err) {
       // data/server_url.json does not exist
+      log.Printf("[%s] SetServerURL!!!", __FILE__)
       SetServerURL(DEFAULT_SERVER_URL)
   }
 
