@@ -19,25 +19,55 @@ import (
 
 var wss_prefix = "ws://"
 
+/**
+ * @struct Command
+ * @brief This structure contains command information
+ *
+ * The containers struct encapsulate command in the one data
+*/
 type Command struct {
 	Cmd string `json:"cmd"`
 }
 
+/**
+ * @struct SendChannel
+ * @brief This structure contains send channel information
+ *
+ * The containers struct encapsulate send channel information in the one data
+*/
 type SendChannel struct{
 	containers chan ws_ContainerList_info
 	updateinfo chan ws_ContainerUpdateReturn
 }
 
+/**
+ * @struct ReceiveChannel
+ * @brief This structure contains receive channel information
+ *
+ * The containers struct encapsulate receive channel information in the one data
+*/
 type ReceiveChannel struct{
 	containers chan bool
 	updateinfo chan dockzen_h.ContainerUpdateInfo
 }
 
+/**
+ * @struct Containers_Channel
+ * @brief This structure contains channel information
+ *
+ * The containers struct encapsulate container channel information in the one data
+*/
 type Containers_Channel struct{
 	receive chan bool
 	send chan ws_ContainerList_info
 }
 
+/**
+ * @struct Containers_Channel
+ * @brief This structure contains channel information for update command
+ *
+ * The containers struct encapsulate update channel information in the one data
+*/
 type Update_Channel struct{
 	receive chan dockzen_h.ContainerUpdateInfo
 	send chan ws_ContainerUpdateReturn
@@ -46,6 +76,11 @@ type Update_Channel struct{
 var chSignal chan os.Signal
 var done chan bool
 
+/**
+ * @fn	WI_init
+ * @brief This function start ws_mainloop function.
+ *
+*/
 func WI_init(){
 
 	log.Printf("[%s] Web connection start !!!\n", __FILE__)
@@ -60,6 +95,14 @@ func WI_init(){
 
 }
 
+/**
+ * @fn	WS_Server_Connect(server_url string) (ws *websocket.Conn, err error)
+ * @brief This function connect web server.
+ *
+ * @param server_url 				[in] web server url
+ * @return websocket.conn 	[out] web socket uniq id
+ * @return err							[out] result of function
+*/
 func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 	var wss_server_url = wss_prefix + server_url
@@ -83,6 +126,14 @@ func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 }
 
+/**
+ * @fn	WS_MessageLoop(messages chan string,
+ 											receive_channel ReceiveChannel)
+ * @brief This function handles incomming message from the web server.
+ *
+ * @param messages 					[in] message channel
+ * @param receive_channel 	[out] receive channel
+*/
 func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 
 	for {
@@ -113,6 +164,12 @@ func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 	}
 }
 
+/**
+ * @fn	ws_mainLoop() (err error)
+ * @brief This function is main loop
+ *
+ * @return err		[out] result of function
+*/
 func ws_mainLoop() (err error) {
 
 	go func() {
@@ -162,6 +219,14 @@ func ws_mainLoop() (err error) {
 	return nil
 }
 
+/**
+ * @fn	WS_SendMsg(ws *websocket.Conn,
+ 									send_channel SendChannel)
+ * @brief This function send message to web server
+ *
+ * @param ws 						[in] web socket uniq id
+ * @param send_channel 	[in] send channel
+*/
 func WS_SendMsg(ws *websocket.Conn, send_channel SendChannel){
 	for{
 		select{
@@ -174,6 +239,17 @@ func WS_SendMsg(ws *websocket.Conn, send_channel SendChannel){
 	}
 }
 
+/**
+ * @fn	wsReceive(server_url string,
+ 									ws *websocket.Conn,
+									chan_msg chan string) (err error)
+ * @brief This function receive message from web server
+ *
+ * @param server_url		[in] web server url
+ * @param ws 						[in] web socket uniq id
+ * @param chan_msg 			[in] communication with messageloop function.
+ * @return err					[out] result of function
+*/
 func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err error) {
 
 	var read_buf string
@@ -207,6 +283,14 @@ func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err
 	return err
 }
 
+/**
+ * @fn	wsReqeustConnection(ws *websocket.Conn, name string) (err error)
+ * @brief This function send device information to web server.
+ *
+ * @param ws 				[in] web socket unique id
+ * @param name 			[in] device id
+ * @return err			[out] result of function
+*/
 func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 	send := ConnectReq{}
 	send.Cmd = "request"
@@ -217,7 +301,18 @@ func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 	return nil
 }
 
-
+/**
+ * @fn	wsProxyDial(url_,
+ 										protocol,
+ 										origin string) (ws *websocket.Conn, err error)
+ * @brief This function request connection to web server.
+ *
+ * @param url_ 			[in] web server url
+ * @param protocol	[in] ex) tcp, udp....
+ * @param origin		[in] previous server url
+ * @return ws				[out] web socket unique id
+ * @return err			[out] result of function
+*/
 func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) {
 
 	log.Printf("[%s] http_proxy {%s}\n", __FILE__, os.Getenv("HTTP_PROXY"))
@@ -268,6 +363,16 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 	return websocket.NewClient(config, client)
 }
 
+/**
+ * @fn	wsHttpConnect(proxy,
+ 											url_ string) (io.ReadWriteCloser, error)
+ * @brief This function connect web server.
+ *
+ * @param proxy 		[in] Host name
+ * @param url_			[in] web server url
+ * @return io.ReadWriteCloser		[out] ReadWriteCloser is the interface that groups the basic Read, Write and Close methods.
+ * @return err			[out] result of function
+*/
 func wsHttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 	log.Printf("[%s] proxy =", __FILE__, proxy)
 	proxy_tcp_conn, err := net.Dial("tcp", proxy)

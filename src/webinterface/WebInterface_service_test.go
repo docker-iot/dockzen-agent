@@ -6,6 +6,12 @@ import (
   dockzen_h "include"
 )
 
+/**
+ * @fn	TestParseUpdateParam(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
 func TestParseUpdateParam(t *testing.T){
   log.Printf("[TEST] ========== ParseUpdateParam test code ===========")
 
@@ -18,6 +24,12 @@ func TestParseUpdateParam(t *testing.T){
   }
 }
 
+/**
+ * @fn	TestWS_GetContainerLists_Res(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
 func TestWS_GetContainerLists_Res(t *testing.T){
   log.Printf("[TEST] ========== WS_GetContainerLists test code ===========")
   var send_info ws_ContainerList_info
@@ -38,6 +50,12 @@ func TestWS_GetContainerLists_Res(t *testing.T){
   }
 }
 
+/**
+ * @fn	TestWS_UpdateImage_Res(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
 func TestWS_UpdateImage_Res(t *testing.T){
   log.Printf("[TEST] ========== WS_UpdateImage test code ===========")
   var send_info ws_ContainerUpdateReturn

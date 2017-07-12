@@ -7,6 +7,12 @@ import (
   dockzen_h "include"
 )
 
+/**
+ * @fn	Test__Updatecallback(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
 func Test__Updatecallback(t *testing.T){
   log.Printf("[TEST] ========== Updatecallback test code ===========")
   var user_data update_userData

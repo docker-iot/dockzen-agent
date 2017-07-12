@@ -11,6 +11,13 @@ var SERVER_URL_FILE_PATH = "data"
 var SERVER_URL_FILE  = "server_url.json"
 var DEFAULT_SERVER_URL = "10.113.62.204:4000"
 
+/**
+ * @fn	SetServerURL(url string) int
+ * @brief This function set web server url.
+ *
+ * @param	url,  [in] server url.
+ * @return int, [out] function state.
+*/
 func SetServerURL(url string) int {
   var config server_config
   config.Server_URL = url
@@ -44,6 +51,13 @@ func SetServerURL(url string) int {
 
 }
 
+/**
+ * @fn	GetServerURL() string
+ * @brief This function get web server url.
+ *
+ * @param	void,
+ * @return string, [out] server url.
+*/
 func GetServerURL() string {
 
   if _, err := os.Stat(SERVER_URL_FILE_PATH + "/" + SERVER_URL_FILE); os.IsNotExist(err) {

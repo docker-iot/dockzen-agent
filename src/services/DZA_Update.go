@@ -7,6 +7,15 @@ import (
 	"unsafe"
 )
 
+/**
+ * @fn	__Updatecallback(status dockzen_h.Container_update_cb_s,
+  											user_data unsafe.Pointer)
+ * @brief This function is callback function for updatecontainer command
+ *
+ * @param	status,			[in] container status information.
+ * @param user_data,	[in] user data
+ * @return void
+*/
 func __Updatecallback(status dockzen_h.Container_update_cb_s, user_data unsafe.Pointer) {
 	log.Printf("[%s] service Callback OK!!!!", __FILE__)
 	log.Printf("[%s] __Updatecallback> status.Container_name = ", __FILE__, status.Container_name)
@@ -18,6 +27,15 @@ func __Updatecallback(status dockzen_h.Container_update_cb_s, user_data unsafe.P
 
 }
 
+/**
+ * @fn	DZA_Update_Do(updateinfo dockzen_h.ContainerUpdateInfo,
+  									updateReturn *dockzen_h.ContainerUpdateRes) int
+ * @brief This function calls the dockzen_api.UpdateContainer function.
+ *
+ * @param	updateinfo,		[in] container information structure
+ * @param updateReturn,	[inout] update information structure
+ * @return int, 				[out] dockzen_api.UpdateContainer return value
+*/
 func DZA_Update_Do(updateinfo dockzen_h.ContainerUpdateInfo, updateReturn *dockzen_h.ContainerUpdateRes) int {
 	log.Printf("[%s] UpdateImageRequest", __FILE__)
 

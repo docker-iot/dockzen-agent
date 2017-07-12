@@ -31,6 +31,15 @@ import "C"
 type ContainerUpdateCB func(dockzen_h.Container_update_cb_s, unsafe.Pointer)
 var __FILE__ = "LIB"
 
+/**
+ * @fn	[Mandatory] GetContainerListsInfo_Res(C_containers_info C.containers_info_s,
+  																						containers_info *dockzen_h.Containers_info)
+ * @brief [Mandatory] This function convert C structure data to go structure data
+ *
+ * @param	C_containers_info,		[in] container information structure of C structure.
+ * @param containers_info,			[inout] container information structure
+ * @return void
+*/
 func GetContainerListsInfo_Res(C_containers_info C.containers_info_s, containers_info *dockzen_h.Containers_info){
 	log.Printf("[%s] >>> API GetContainerListsInfo Request", __FILE__)
 
@@ -65,6 +74,13 @@ func GetContainerListsInfo_Res(C_containers_info C.containers_info_s, containers
 
 }
 
+/**
+ * @fn	[Mandatory] GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int
+ * @brief [Mandatory] This function calls the dockzen library function.
+ *
+ * @param	containers_info,		[inout] container information structure
+ * @return int,								[out] dockzen library function return value.
+*/
 func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 
 	log.Printf("[%s] >>>>>>>>>> API GetContainerListsInfo()...", __FILE__)
@@ -80,7 +96,15 @@ func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 }
 
 
-
+/**
+ * @fn	[Mandatory] _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer,
+ 																								userdata unsafe.Pointer)
+ * @brief [Mandatory] This function is callback function for updatecontainer command
+ *
+ * @param	c_status_info,		[in] container status information structure
+ * @param userdata,					[in] user data
+ * @return void
+*/
 //export _GO_CallbackContainerUpdate
 func _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer, userdata unsafe.Pointer) {
 	log.Printf("[%s] _GO_CallbackContainerUpdate > !!!", __FILE__)
@@ -117,6 +141,15 @@ func _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer, userdata unsafe.P
 
 }
 
+/**
+ * @fn	[Mandatory] UpdateContainer_Res(C_update_res C.container_update_res_s,
+  																			update_res * dockzen_h.ContainerUpdateRes)
+ * @brief [Mandatory] This function convert C structure data to go structure data.
+ *
+ * @param	C_update_res,		[in] C update information struture
+ * @param	update_res,			[inout] update information struture
+ * @return void
+*/
 func UpdateContainer_Res(C_update_res C.container_update_res_s, update_res * dockzen_h.ContainerUpdateRes){
 
 	update_res.Container_Name = C.GoString(C_update_res.container_name)
@@ -145,6 +178,16 @@ func UpdateContainer_Res(C_update_res C.container_update_res_s, update_res * doc
 	}()
 }
 
+/**
+ * @fn	[Mandatory] UpdateContainer(container_update dockzen_h.ContainerUpdateInfo,
+ 																		update_res * dockzen_h.ContainerUpdateRes,
+																		callback ContainerUpdateCB,
+																		userdata unsafe.Pointer) int
+ * @brief [Mandatory] This function calls the updatecontainer function in dockzen library
+ *
+ * @param	c_status_info,		[in] container information structure
+ * @return int,							[out] dockzen library function return value.
+*/
 func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res * dockzen_h.ContainerUpdateRes, callback ContainerUpdateCB, userdata unsafe.Pointer) int {
 	log.Printf("[%s] >>>>>>>>>> UpdateContainer()...", __FILE__)
 
@@ -164,7 +207,13 @@ func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res 
 	return int(ret)
 }
 
-/* //////////////// unit test for each API */
+/**
+ * @fn	[Mandatory] testGetContainerListsInfo(t *testing.T)
+ * @brief [Mandatory] This function is unit test for GetContainerListsInfo
+ *
+ * @param	t,		[in] testing struture
+ * @return void
+*/
 func testGetContainerListsInfo(t *testing.T){
 	var C_containers_info C.containers_info_s
 	var containers_info dockzen_h.Containers_info
@@ -179,6 +228,15 @@ func testGetContainerListsInfo(t *testing.T){
 	}
 }
 
+/**
+ * @fn	[Mandatory] testUpdateContainer(t *testing.T,
+  																			callback ContainerUpdateCB)
+ * @brief [Mandatory] This function is unit test for UpdatateContainer
+ *
+ * @param	t,					[in] testing struture
+ * @param	callback,		[in] callback function
+ * @return void
+*/
 func testUpdateContainer(t *testing.T, callback ContainerUpdateCB){
 	var C_update_info C.container_update_s
 	var update_res  dockzen_h.ContainerUpdateRes
