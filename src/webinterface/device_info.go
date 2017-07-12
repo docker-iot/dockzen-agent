@@ -6,20 +6,20 @@ import (
 )
 
 /**
- * @fn	GetHardwareAddress() (string, error)
+ * @fn	getHardwareAddress() (string, error)
  * @brief This function get the unique HW id to distinguish in web dash board.
  *   In temporarily, return mac address althouth it is not proper in bridge network mode.
  *
  * @return string,		[out] hardware address
  * @return error,     [out] error value (if the value is null, it is not an error.)
 */
-func GetHardwareAddress() (string, error) {
+func getHardwareAddress() (string, error) {
 
 	var netInterface net.Interface
 
 	// get all Interfaces
 	netInterfaceLists, err := net.Interfaces()
-	
+
 	if err != nil {
 		// if failed to get Interfaces
 		log.Printf("[%s] err = ",__FILE__, err)
@@ -32,12 +32,12 @@ func GetHardwareAddress() (string, error) {
 				break;
 			}
 		}
-		
+
 		if netInterface.Index ==0 {
 			// if failed to search valid Interfaces
 			log.Printf("[%s] err = ",__FILE__, "can't find valid interface")
 			for i, v := range netInterfaceLists {
-				log.Printf("[%v] = [%v]", i, v)	
+				log.Printf("[%v] = [%v]", i, v)
 			}
 			return "Invalid-Hardware-Address", nil
 		} else {

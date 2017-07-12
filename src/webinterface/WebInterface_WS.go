@@ -96,14 +96,14 @@ func WI_init(){
 }
 
 /**
- * @fn	WS_Server_Connect(server_url string) (ws *websocket.Conn, err error)
+ * @fn	ws_Server_Connect(server_url string) (ws *websocket.Conn, err error)
  * @brief This function connect web server.
  *
  * @param server_url 				[in] web server url
  * @return websocket.conn 	[out] web socket uniq id
  * @return err							[out] result of function
 */
-func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
+func ws_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 	var wss_server_url = wss_prefix + server_url
 	ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_url)
@@ -114,11 +114,11 @@ func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 		return nil, err
 	}
 
-	name, _ := GetHardwareAddress()
+	name, _ := getHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
 	if err != nil {
-		log.Printf("[%s] WS_Server_Connect error = ", err)
+		log.Printf("[%s] ws_Server_Connect error = ", err)
 		return ws, err
 	}
 
@@ -127,14 +127,14 @@ func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 }
 
 /**
- * @fn	WS_MessageLoop(messages chan string,
+ * @fn	ws_MessageLoop(messages chan string,
  											receive_channel ReceiveChannel)
  * @brief This function handles incomming message from the web server.
  *
  * @param messages 					[in] message channel
  * @param receive_channel 	[out] receive channel
 */
-func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
+func ws_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 
 	for {
 		msg := <-messages
@@ -150,7 +150,7 @@ func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 				receive_channel.containers <-true
 		case "UpdateImage":
 			log.Printf("[%s] command <UpdateImage>", __FILE__)
-			update_msg, r := ParseUpdateParam(msg)
+			update_msg, r := parseUpdateParam(msg)
 			if r == nil {
 					receive_channel.updateinfo <- update_msg
 			} else {
@@ -184,7 +184,7 @@ func ws_mainLoop() (err error) {
 		return
 	}
 
-	ws, err := WS_Server_Connect(server_url)
+	ws, err := ws_Server_Connect(server_url)
 
 	messages := make(chan string)
 	go wsReceive(server_url, ws, messages)
@@ -193,7 +193,7 @@ func ws_mainLoop() (err error) {
 	send_channel.containers = make(chan ws_ContainerList_info, 5)
 	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn, 5)
 
-	go WS_SendMsg(ws, send_channel)
+	go ws_SendMsg(ws, send_channel)
 
 	var container_ch Containers_Channel
 	container_ch.receive = make(chan bool)
@@ -204,30 +204,30 @@ func ws_mainLoop() (err error) {
 	update_ch.send = send_channel.updateinfo
 
 	for i:= 0; i<3;i++{
-		go WS_GetContainerLists(container_ch)
-		go WS_UpdateImage(update_ch)
+		go ws_GetContainerLists(container_ch)
+		go ws_UpdateImage(update_ch)
 	}
 
 	var receive_channel ReceiveChannel
 	receive_channel.containers = container_ch.receive
 	receive_channel.updateinfo = update_ch.receive
-	//go WS_UpdateImage(update_msg, send_channel.updateinfo)
+	//go ws_UpdateImage(update_msg, send_channel.updateinfo)
 
 	defer ws.Close()
-	WS_MessageLoop(messages, receive_channel)
+	ws_MessageLoop(messages, receive_channel)
 
 	return nil
 }
 
 /**
- * @fn	WS_SendMsg(ws *websocket.Conn,
+ * @fn	ws_SendMsg(ws *websocket.Conn,
  									send_channel SendChannel)
  * @brief This function send message to web server
  *
  * @param ws 						[in] web socket uniq id
  * @param send_channel 	[in] send channel
 */
-func WS_SendMsg(ws *websocket.Conn, send_channel SendChannel){
+func ws_SendMsg(ws *websocket.Conn, send_channel SendChannel){
 	for{
 		select{
 		case send_msg:= <-send_channel.containers:

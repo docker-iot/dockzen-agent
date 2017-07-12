@@ -32,7 +32,7 @@ type ContainerUpdateCB func(dockzen_h.Container_update_cb_s, unsafe.Pointer)
 var __FILE__ = "LIB"
 
 /**
- * @fn	[Mandatory] GetContainerListsInfo_Res(C_containers_info C.containers_info_s,
+ * @fn	[Mandatory] getContainerListsInfo_Res(C_containers_info C.containers_info_s,
   																						containers_info *dockzen_h.Containers_info)
  * @brief [Mandatory] This function convert C structure data to go structure data
  *
@@ -40,7 +40,7 @@ var __FILE__ = "LIB"
  * @param containers_info,			[inout] container information structure
  * @return void
 */
-func GetContainerListsInfo_Res(C_containers_info C.containers_info_s, containers_info *dockzen_h.Containers_info){
+func getContainerListsInfo_Res(C_containers_info C.containers_info_s, containers_info *dockzen_h.Containers_info){
 	log.Printf("[%s] >>> API GetContainerListsInfo Request", __FILE__)
 
 	containers_info.Count = int(C_containers_info.count)
@@ -88,7 +88,7 @@ func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 	var C_containers_info C.containers_info_s
 	var ret = C.dockzen_get_containers_info(&C_containers_info)
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
-		GetContainerListsInfo_Res(C_containers_info, containers_info)
+		getContainerListsInfo_Res(C_containers_info, containers_info)
 	}
 
 	log.Printf("[%s] container = ", __FILE__, containers_info)
@@ -142,7 +142,7 @@ func _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer, userdata unsafe.P
 }
 
 /**
- * @fn	[Mandatory] UpdateContainer_Res(C_update_res C.container_update_res_s,
+ * @fn	[Mandatory] updateContainer_Res(C_update_res C.container_update_res_s,
   																			update_res * dockzen_h.ContainerUpdateRes)
  * @brief [Mandatory] This function convert C structure data to go structure data.
  *
@@ -150,7 +150,7 @@ func _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer, userdata unsafe.P
  * @param	update_res,			[inout] update information struture
  * @return void
 */
-func UpdateContainer_Res(C_update_res C.container_update_res_s, update_res * dockzen_h.ContainerUpdateRes){
+func updateContainer_Res(C_update_res C.container_update_res_s, update_res * dockzen_h.ContainerUpdateRes){
 
 	update_res.Container_Name = C.GoString(C_update_res.container_name)
 	update_res.Image_name_Prev = C.GoString(C_update_res.image_name_prev)
@@ -201,7 +201,7 @@ func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res 
 
 	var ret = C.dockzen_update_container(&C_update_info, &C_update_res, (C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate)), unsafe.Pointer(user_data))
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
-		UpdateContainer_Res(C_update_res, update_res)
+		updateContainer_Res(C_update_res, update_res)
 	}
 
 	return int(ret)
@@ -221,7 +221,7 @@ func testGetContainerListsInfo(t *testing.T){
 	var ret = C.test_dockzen_get_containers_info(&C_containers_info)
 
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE{
-		GetContainerListsInfo_Res(C_containers_info, &containers_info)
+		getContainerListsInfo_Res(C_containers_info, &containers_info)
 		log.Printf("[TEST] container = ", containers_info)
 	} else {
 		t.Errorf("[TEST] GetContainerInfo error")
@@ -249,7 +249,7 @@ func testUpdateContainer(t *testing.T, callback ContainerUpdateCB){
 	var ret = C.test_dockzen_update_container(&C_update_info, &C_update_res,(C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate)), unsafe.Pointer(user_data))
 
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
-		UpdateContainer_Res(C_update_res, &update_res)
+		updateContainer_Res(C_update_res, &update_res)
 		log.Printf("[TEST] update_res = ", update_res)
 	} else {
 		t.Errorf("[TEST] updateContainer error")

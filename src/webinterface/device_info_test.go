@@ -6,14 +6,14 @@ import (
 )
 
 /**
- * @fn	TestGetHardwareAddress(t *testing.T)
+ * @fn	TestgetHardwareAddress(t *testing.T)
  * @brief unit test function.
  *
  * @param	t, [in] testing structure
 */
-func TestGetHardwareAddress(t *testing.T){
-  log.Printf("[TEST] ========== GetHardwareAddress test code ===========")
-  address, r := GetHardwareAddress()
+func TestgetHardwareAddress(t *testing.T){
+  log.Printf("[TEST] ========== getHardwareAddress test code ===========")
+  address, r := getHardwareAddress()
   if r != nil {
     t.Errorf("[TEST] HardwareAddress error = ", r)
   }else {

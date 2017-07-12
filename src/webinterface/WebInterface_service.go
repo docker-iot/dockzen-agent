@@ -8,7 +8,7 @@ import (
 )
 
 /**
- * @fn	WS_GetContainerLists_Res(send_info * ws_ContainerList_info,
+ * @fn	ws_GetContainerLists_Res(send_info * ws_ContainerList_info,
                                 containersInfo dockzen_h.Containers_info) (err error)
  * @brief This function set unique device information.
  *
@@ -16,10 +16,10 @@ import (
  * @param containersInfo  [in] container information structure
  * @return err,          [out] error value (if the value is null, it is not an error.)
 */
-func WS_GetContainerLists_Res(send_info * ws_ContainerList_info, containersInfo dockzen_h.Containers_info) (err error){
+func ws_GetContainerLists_Res(send_info * ws_ContainerList_info, containersInfo dockzen_h.Containers_info) (err error){
   send_info.Cmd = "GetContainersInfo"
   send_info.ContainerCount = int(containersInfo.Count)
-  send_info.DeviceID, err = GetHardwareAddress()
+  send_info.DeviceID, err = getHardwareAddress()
 
   if err != nil{
     log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
@@ -36,12 +36,12 @@ func WS_GetContainerLists_Res(send_info * ws_ContainerList_info, containersInfo 
 }
 
 /**
- * @fn	WS_GetContainerLists(container_ch Containers_Channel)
+ * @fn	ws_GetContainerLists(container_ch Containers_Channel)
  * @brief This function calls sevices.DZA_Mon_GetContainersInfo function..
  *
- * @param container_ch,   [in] It is a channel to communicate with WS_SendMsg function
+ * @param container_ch,   [in] It is a channel to communicate with ws_SendMsg function
 */
-func WS_GetContainerLists(container_ch Containers_Channel) {
+func ws_GetContainerLists(container_ch Containers_Channel) {
   for{
     msg := <-container_ch.receive
     if msg == true {
@@ -51,7 +51,7 @@ func WS_GetContainerLists(container_ch Containers_Channel) {
     	if ret != 0 {
     		log.Printf("[%s] GetContainersInfo error = ", __FILE__, ret)
     	} else {
-        err := WS_GetContainerLists_Res(&send_info, containersInfo)
+        err := ws_GetContainerLists_Res(&send_info, containersInfo)
         if err == nil {
           container_ch.send <-send_info
         }
@@ -61,14 +61,14 @@ func WS_GetContainerLists(container_ch Containers_Channel) {
 }
 
 /**
- * @fn	ParseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error)
+ * @fn	parseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error)
  * @brief This function convert json data to ContainerUpdateInfo structure.
  *
  * @param msg,                            [in] json data
  * @return dockzen_h.ContainerUpdateInfo  [out] containerUpdateInfo structure
  * @return error                          [out] error value (if the value is null, it is not an error.)
 */
-func ParseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
+func parseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
 	send := dockzen_h.ContainerUpdateInfo{}
 	r := json.Unmarshal([]byte(msg), &send)
   if r == nil {
@@ -80,7 +80,7 @@ func ParseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
 }
 
 /**
- * @fn	WS_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn,
+ * @fn	ws_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn,
                           updateReturn dockzen_h.ContainerUpdateRes) (err error)
  * @brief This function set unique device information.
  *
@@ -88,9 +88,9 @@ func ParseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
  * @param updateReturn  [out] update information
  * @return error        [out] error value (if the value is null, it is not an error.)
 */
-func WS_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn, updateReturn dockzen_h.ContainerUpdateRes) (err error){
+func ws_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn, updateReturn dockzen_h.ContainerUpdateRes) (err error){
   send_Return.Cmd = "UpdateImage"
-  send_Return.DeviceID, err = GetHardwareAddress()
+  send_Return.DeviceID, err = getHardwareAddress()
   send_Return.UpdateState = updateReturn.Status
 
   if err != nil {
@@ -103,12 +103,12 @@ func WS_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn, updateReturn dock
 }
 
 /**
- * @fn	WS_UpdateImage(update_ch Update_Channel)
+ * @fn	ws_UpdateImage(update_ch Update_Channel)
  * @brief This function calls services.DZA_Update_Do function.
  *
- * @param update_ch,   [in] It is a channel to communicate with WS_SendMsg function
+ * @param update_ch,   [in] It is a channel to communicate with ws_SendMsg function
 */
-func WS_UpdateImage(update_ch Update_Channel){
+func ws_UpdateImage(update_ch Update_Channel){
   for{
     msg := <-update_ch.receive
 
@@ -121,7 +121,7 @@ func WS_UpdateImage(update_ch Update_Channel){
   	if ret != 0{
   		log.Printf("[%s] UpdateInfo error = ", __FILE__, ret)
   	} else {
-      err := WS_UpdateImage_Res(&send_Return, updateReturn)
+      err := ws_UpdateImage_Res(&send_Return, updateReturn)
       if err == nil {
         update_ch.send <- send_Return
       }
