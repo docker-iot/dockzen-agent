@@ -48,11 +48,6 @@ type ContainerUpdateRes struct {
 	Status		string
 }
 
-type ContainerUpdate_cb struct {
-	Container_Name string
-	Status string
-}
-
 /**
  * @struct ContainerUpdate_cb_s
  * @brief This structure contains callback information for container update
