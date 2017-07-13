@@ -1,11 +1,7 @@
+// Package include is types of API for dockzen.
 package include
 
-/**
- * @struct Container
- * @brief This structure contains container information.
- *
- * The containers struct encapsulate container information in the one data
-*/
+// Container structure contains container information.
 type Container struct{
 	ID string
 	Name string
@@ -13,34 +9,19 @@ type Container struct{
 	Status string
 }
 
-/**
- * @struct Containers_info
- * @brief This structure contains container list information.
- *
- * The containers struct encapsulate count and container information in the one data
-*/
+// Containers_info structure contains container list information.
 type Containers_info struct {
 	Count int
 	Containerinfo []Container
 }
 
-/**
- * @struct ContainerUpdateInfo
- * @brief This structure contains container update information.
- *
- * The containers struct encapsulate update information in the one data
-*/
+// ContainerUpdateInfo structure contains container update information.
 type ContainerUpdateInfo struct {
 	Image_Name     string `json:"ImageName"`
 	Container_Name string `json:"Name"`
 }
 
-/**
- * @struct ContainerUpdateRes
- * @brief This structure contains response information for container update
- *
- * The containers struct encapsulate update information in the one data
-*/
+// ContainerUpdateRes structure contains response information for container update.
 type ContainerUpdateRes struct {
 	Container_Name 	string
 	Image_name_Prev	string
@@ -48,24 +29,15 @@ type ContainerUpdateRes struct {
 	Status		string
 }
 
-/**
- * @struct ContainerUpdate_cb_s
- * @brief This structure contains callback information for container update
- *
- * The containers struct encapsulate update callback information in the one data
-*/
+// ContainerUpdate_cb_s contains callback information for container update.
 type Container_update_cb_s struct {
 	Container_name	string
 	Image_name	string
 	Status		string
 }
 
-/**
- * @brief  This enum contains dockzen error information
- *
- * The dockzen_error_e indicates what error is happened
- *
- */
+// This enum contains dockzen error information.
+//The dockzen_error_e indicates what error is happened.
 const (
 	DOCKZEN_ERROR_NONE int = iota 
 	DOCKZEN_ERROR_INVALID_PARAMETER

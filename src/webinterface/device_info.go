@@ -5,14 +5,9 @@ import (
   "net"
 )
 
-/**
- * @fn	getHardwareAddress() (string, error)
- * @brief This function get the unique HW id to distinguish in web dash board.
- *   In temporarily, return mac address althouth it is not proper in bridge network mode.
- *
- * @return string,		[out] hardware address
- * @return error,     [out] error value (if the value is null, it is not an error.)
-*/
+
+// Static getHardwareAddress get the unique HW id to distinguish in web dash board.
+// In temporarily, return mac address althouth it is not proper in bridge network mode.
 func getHardwareAddress() (string, error) {
 
 	var netInterface net.Interface

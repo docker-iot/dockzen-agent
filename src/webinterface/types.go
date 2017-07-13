@@ -1,26 +1,18 @@
+// Package webinterface implements a client for the WebSocket protocol.
 package webinterface
 
 import (
   dockzen_h "include"
   )
 
-/**
- * @struct ConnectReq
- * @brief This structure contains request information for web server.
- *
- * The containers struct encapsulate connection information in the one data
-*/
+
+// ConnectReq structure contains request information for web server.
 type ConnectReq struct {
 	Cmd  string `json:"cmd"`
 	Name string `json:"name"`
 }
 
-/**
- * @struct ws_ContainerList_info
- * @brief This structure contains container list information
- *
- * The containers struct encapsulate deviceid, count, command name and container information in the one data
-*/
+// Ws_ContainerList_info structure contains container list information.
 type ws_ContainerList_info struct {
 	Cmd            string          			`json:"Cmd"`
 	DeviceID       string          			`json:"DeviceID"`
@@ -28,12 +20,7 @@ type ws_ContainerList_info struct {
 	Container      []dockzen_h.Container `json:"ContainerInfo"`
 }
 
-/**
- * @struct ws_ContainerUpdateReturn
- * @brief This structure contains container update return information.
- *
- * The containers struct encapsulate deviceid, command name and update information in the one data
-*/
+// Ws_ContainerUpdateReturn structure contains container update return information.
 type ws_ContainerUpdateReturn struct {
     Cmd           string         `json:"Cmd"`
     DeviceID      string         `json:"DeviceID"`
