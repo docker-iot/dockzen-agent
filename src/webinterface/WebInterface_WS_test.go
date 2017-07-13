@@ -5,6 +5,12 @@ import (
   "testing"
 )
 
+/**
+ * @fn	TestWS_Server_Connect(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
 func TestWS_Server_Connect(t *testing.T){
   log.Printf("[TEST] ========== WS_Server_Connect test code ===========")
   ws, err := WS_Server_Connect("10.113.62.204:4000")

@@ -1,3 +1,4 @@
+// Package lib is communicate a agent and launcher.
 package lib
 
 import (
@@ -31,7 +32,9 @@ import "C"
 type ContainerUpdateCB func(dockzen_h.Container_update_cb_s, unsafe.Pointer)
 var __FILE__ = "LIB"
 
-func GetContainerListsInfo_Res(C_containers_info C.containers_info_s, containers_info *dockzen_h.Containers_info){
+// Static getContainerListsInfo_Res convert C structure data to go structure data.
+// Param consists of source structure and destination struture.
+func getContainerListsInfo_Res(C_containers_info C.containers_info_s, containers_info *dockzen_h.Containers_info){
 	log.Printf("[%s] >>> API GetContainerListsInfo Request", __FILE__)
 
 	containers_info.Count = int(C_containers_info.count)
@@ -65,6 +68,9 @@ func GetContainerListsInfo_Res(C_containers_info C.containers_info_s, containers
 
 }
 
+
+// GetContainerListsInfo calls the dockzen library function.
+// This function returns result of function.
 func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 
 	log.Printf("[%s] >>>>>>>>>> API GetContainerListsInfo()...", __FILE__)
@@ -72,7 +78,7 @@ func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 	var C_containers_info C.containers_info_s
 	var ret = C.dockzen_get_containers_info(&C_containers_info)
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
-		GetContainerListsInfo_Res(C_containers_info, containers_info)
+		getContainerListsInfo_Res(C_containers_info, containers_info)
 	}
 
 	log.Printf("[%s] container = ", __FILE__, containers_info)
@@ -80,7 +86,7 @@ func GetContainerListsInfo(containers_info *dockzen_h.Containers_info) int {
 }
 
 
-
+// _GO_CallbackContainerUpdate is callback function for updatecontainer command.
 //export _GO_CallbackContainerUpdate
 func _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer, userdata unsafe.Pointer) {
 	log.Printf("[%s] _GO_CallbackContainerUpdate > !!!", __FILE__)
@@ -117,7 +123,8 @@ func _GO_CallbackContainerUpdate(c_status_info unsafe.Pointer, userdata unsafe.P
 
 }
 
-func UpdateContainer_Res(C_update_res C.container_update_res_s, update_res * dockzen_h.ContainerUpdateRes){
+// Static updateContainer_Res convert C structure data to go structure data.
+func updateContainer_Res(C_update_res C.container_update_res_s, update_res * dockzen_h.ContainerUpdateRes){
 
 	update_res.Container_Name = C.GoString(C_update_res.container_name)
 	update_res.Image_name_Prev = C.GoString(C_update_res.image_name_prev)
@@ -145,6 +152,9 @@ func UpdateContainer_Res(C_update_res C.container_update_res_s, update_res * doc
 	}()
 }
 
+// UpdateContainer calls the updatecontainer function in dockzen library.
+// Param c_status_info is container information structure.
+// This function return result of dockzen library function.
 func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res * dockzen_h.ContainerUpdateRes, callback ContainerUpdateCB, userdata unsafe.Pointer) int {
 	log.Printf("[%s] >>>>>>>>>> UpdateContainer()...", __FILE__)
 
@@ -158,13 +168,13 @@ func UpdateContainer(container_update dockzen_h.ContainerUpdateInfo, update_res 
 
 	var ret = C.dockzen_update_container(&C_update_info, &C_update_res, (C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate)), unsafe.Pointer(user_data))
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
-		UpdateContainer_Res(C_update_res, update_res)
+		updateContainer_Res(C_update_res, update_res)
 	}
 
 	return int(ret)
 }
 
-/* //////////////// unit test for each API */
+// Function testGetContainerListsInfo is unit test for GetContainerListsInfo.
 func testGetContainerListsInfo(t *testing.T){
 	var C_containers_info C.containers_info_s
 	var containers_info dockzen_h.Containers_info
@@ -172,13 +182,14 @@ func testGetContainerListsInfo(t *testing.T){
 	var ret = C.test_dockzen_get_containers_info(&C_containers_info)
 
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE{
-		GetContainerListsInfo_Res(C_containers_info, &containers_info)
+		getContainerListsInfo_Res(C_containers_info, &containers_info)
 		log.Printf("[TEST] container = ", containers_info)
 	} else {
 		t.Errorf("[TEST] GetContainerInfo error")
 	}
 }
 
+// Function testUpdateContainer is unit test for UpdatateContainer.
 func testUpdateContainer(t *testing.T, callback ContainerUpdateCB){
 	var C_update_info C.container_update_s
 	var update_res  dockzen_h.ContainerUpdateRes
@@ -191,7 +202,7 @@ func testUpdateContainer(t *testing.T, callback ContainerUpdateCB){
 	var ret = C.test_dockzen_update_container(&C_update_info, &C_update_res,(C.container_update_cb)(unsafe.Pointer(C._C_CallbackContainerUpdate)), unsafe.Pointer(user_data))
 
 	if int(ret) == dockzen_h.DOCKZEN_ERROR_NONE {
-		UpdateContainer_Res(C_update_res, &update_res)
+		updateContainer_Res(C_update_res, &update_res)
 		log.Printf("[TEST] update_res = ", update_res)
 	} else {
 		t.Errorf("[TEST] updateContainer error")

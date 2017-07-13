@@ -6,20 +6,32 @@ import (
   dockzen_h "include"
 )
 
-func TestParseUpdateParam(t *testing.T){
-  log.Printf("[TEST] ========== ParseUpdateParam test code ===========")
+/**
+ * @fn	TestParseUpdateParam(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
+func TestparseUpdateParam(t *testing.T){
+  log.Printf("[TEST] ========== parseUpdateParam test code ===========")
 
   msg := `{"ImageName":"tizen","Name":"test"}`
-  updateinfo, r := ParseUpdateParam(msg)
+  updateinfo, r := parseUpdateParam(msg)
   if r != nil {
-    t.Errorf("[TEST] ParseUpdateParam message error =", r)
+    t.Errorf("[TEST] parseUpdateParam message error =", r)
   } else {
     log.Printf("[TEST] updateinfo =", updateinfo)
   }
 }
 
-func TestWS_GetContainerLists_Res(t *testing.T){
-  log.Printf("[TEST] ========== WS_GetContainerLists test code ===========")
+/**
+ * @fn	Testws_GetContainerLists_Res(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
+func Testws_GetContainerLists_Res(t *testing.T){
+  log.Printf("[TEST] ========== ws_GetContainerLists test code ===========")
   var send_info ws_ContainerList_info
   var containersInfo dockzen_h.Containers_info
   containersInfo.Count = 1
@@ -29,7 +41,7 @@ func TestWS_GetContainerLists_Res(t *testing.T){
   containersInfo.Containerinfo[0].ImageName = "headless:v0.1"
   containersInfo.Containerinfo[0].Status = "running"
 
-  err := WS_GetContainerLists_Res(&send_info, containersInfo)
+  err := ws_GetContainerLists_Res(&send_info, containersInfo)
 
   if err != nil {
     t.Errorf("[TEST] WS_GetContainerList_Res error")
@@ -38,19 +50,25 @@ func TestWS_GetContainerLists_Res(t *testing.T){
   }
 }
 
-func TestWS_UpdateImage_Res(t *testing.T){
-  log.Printf("[TEST] ========== WS_UpdateImage test code ===========")
+/**
+ * @fn	Testws_UpdateImage_Res(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
+func Testws_UpdateImage_Res(t *testing.T){
+  log.Printf("[TEST] ========== ws_UpdateImage test code ===========")
   var send_info ws_ContainerUpdateReturn
   var updateReturn dockzen_h.ContainerUpdateRes
   updateReturn.Container_Name = "tizen"
   updateReturn.Image_name_Prev = "headless:v0.1"
   updateReturn.Image_name_New = "headless:v0.2"
   updateReturn.Status = "Running"
-  err := WS_UpdateImage_Res(&send_info, updateReturn)
+  err := ws_UpdateImage_Res(&send_info, updateReturn)
 
   if err != nil {
-    t.Errorf("[TEST] WS_UpdateImage_Res error")
+    t.Errorf("[TEST] ws_UpdateImage_Res error")
   } else {
-    log.Printf("[TEST] WS_UpdateImage_Res = ", send_info)
+    log.Printf("[TEST]ws_UpdateImage_Res = ", send_info)
   }
 }

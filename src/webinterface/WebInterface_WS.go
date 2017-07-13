@@ -19,25 +19,32 @@ import (
 
 var wss_prefix = "ws://"
 
+// Command structure contains command information.
 type Command struct {
 	Cmd string `json:"cmd"`
 }
 
+
+// SendChannel structure contains send channel information.
 type SendChannel struct{
 	containers chan ws_ContainerList_info
 	updateinfo chan ws_ContainerUpdateReturn
 }
 
+
+// ReceiveChannel structure contains receive channel information.
 type ReceiveChannel struct{
 	containers chan bool
 	updateinfo chan dockzen_h.ContainerUpdateInfo
 }
 
+// Containers_Channel structure contains channel information.
 type Containers_Channel struct{
 	receive chan bool
 	send chan ws_ContainerList_info
 }
 
+// Containers_Channel structure contains channel information for update command.
 type Update_Channel struct{
 	receive chan dockzen_h.ContainerUpdateInfo
 	send chan ws_ContainerUpdateReturn
@@ -46,6 +53,7 @@ type Update_Channel struct{
 var chSignal chan os.Signal
 var done chan bool
 
+// WI_init start ws_mainloop function.
 func WI_init(){
 
 	log.Printf("[%s] Web connection start !!!\n", __FILE__)
@@ -60,7 +68,11 @@ func WI_init(){
 
 }
 
-func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
+// Static ws_Server_Connect connect web server.
+// Server_url param is address of web server.
+// websocket.conn param is uniq id of web socket.
+// This function return result of function.
+func ws_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 	var wss_server_url = wss_prefix + server_url
 	ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_url)
@@ -71,11 +83,11 @@ func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 		return nil, err
 	}
 
-	name, _ := GetHardwareAddress()
+	name, _ := getHardwareAddress()
 
 	err = wsReqeustConnection(ws, name)
 	if err != nil {
-		log.Printf("[%s] WS_Server_Connect error = ", err)
+		log.Printf("[%s] ws_Server_Connect error = ", err)
 		return ws, err
 	}
 
@@ -83,7 +95,10 @@ func WS_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 }
 
-func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
+
+// Static ws_MessageLoop handles incomming message from the web server.
+// Param consists of message channel and receive channel.
+func ws_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 
 	for {
 		msg := <-messages
@@ -99,7 +114,7 @@ func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 				receive_channel.containers <-true
 		case "UpdateImage":
 			log.Printf("[%s] command <UpdateImage>", __FILE__)
-			update_msg, r := ParseUpdateParam(msg)
+			update_msg, r := parseUpdateParam(msg)
 			if r == nil {
 					receive_channel.updateinfo <- update_msg
 			} else {
@@ -113,6 +128,7 @@ func WS_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 	}
 }
 
+// Static ws_mainLoop is main loop.
 func ws_mainLoop() (err error) {
 
 	go func() {
@@ -127,7 +143,7 @@ func ws_mainLoop() (err error) {
 		return
 	}
 
-	ws, err := WS_Server_Connect(server_url)
+	ws, err := ws_Server_Connect(server_url)
 
 	messages := make(chan string)
 	go wsReceive(server_url, ws, messages)
@@ -136,7 +152,7 @@ func ws_mainLoop() (err error) {
 	send_channel.containers = make(chan ws_ContainerList_info, 5)
 	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn, 5)
 
-	go WS_SendMsg(ws, send_channel)
+	go ws_SendMsg(ws, send_channel)
 
 	var container_ch Containers_Channel
 	container_ch.receive = make(chan bool)
@@ -147,22 +163,25 @@ func ws_mainLoop() (err error) {
 	update_ch.send = send_channel.updateinfo
 
 	for i:= 0; i<3;i++{
-		go WS_GetContainerLists(container_ch)
-		go WS_UpdateImage(update_ch)
+		go ws_GetContainerLists(container_ch)
+		go ws_UpdateImage(update_ch)
 	}
 
 	var receive_channel ReceiveChannel
 	receive_channel.containers = container_ch.receive
 	receive_channel.updateinfo = update_ch.receive
-	//go WS_UpdateImage(update_msg, send_channel.updateinfo)
+	//go ws_UpdateImage(update_msg, send_channel.updateinfo)
 
 	defer ws.Close()
-	WS_MessageLoop(messages, receive_channel)
+	ws_MessageLoop(messages, receive_channel)
 
 	return nil
 }
 
-func WS_SendMsg(ws *websocket.Conn, send_channel SendChannel){
+// Static ws_SendMsg sends message to web server.
+// Ws param is uniq id of web socket.
+// send_channel param is send channel.
+func ws_SendMsg(ws *websocket.Conn, send_channel SendChannel){
 	for{
 		select{
 		case send_msg:= <-send_channel.containers:
@@ -174,6 +193,8 @@ func WS_SendMsg(ws *websocket.Conn, send_channel SendChannel){
 	}
 }
 
+// Static wsReceive receives message from web server.
+// Param consists of web server url, uniq id of web socket and message channel.
 func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err error) {
 
 	var read_buf string
@@ -207,6 +228,8 @@ func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err
 	return err
 }
 
+// Static wsReqeustConnection send device information to web server.
+// Param consists of unique id of web socket and device id.
 func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 	send := ConnectReq{}
 	send.Cmd = "request"
@@ -217,7 +240,9 @@ func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 	return nil
 }
 
-
+// Static wsProxyDial opens a new client connection to a websocket.
+// Param consists of server url, protocol and original server url.
+// This function returns unique id of web socket and result of function.
 func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) {
 
 	log.Printf("[%s] http_proxy {%s}\n", __FILE__, os.Getenv("HTTP_PROXY"))
@@ -268,6 +293,9 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 	return websocket.NewClient(config, client)
 }
 
+// Static wsHttpConnect connect to web server.
+// Param consists of host name, web server address.
+// This function returns ReadWriteCloser and result of function.
 func wsHttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 	log.Printf("[%s] proxy =", __FILE__, proxy)
 	proxy_tcp_conn, err := net.Dial("tcp", proxy)

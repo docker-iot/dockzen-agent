@@ -5,9 +5,15 @@ import (
   "log"
 )
 
-func TestGetHardwareAddress(t *testing.T){
-  log.Printf("[TEST] ========== GetHardwareAddress test code ===========")
-  address, r := GetHardwareAddress()
+/**
+ * @fn	TestgetHardwareAddress(t *testing.T)
+ * @brief unit test function.
+ *
+ * @param	t, [in] testing structure
+*/
+func TestgetHardwareAddress(t *testing.T){
+  log.Printf("[TEST] ========== getHardwareAddress test code ===========")
+  address, r := getHardwareAddress()
   if r != nil {
     t.Errorf("[TEST] HardwareAddress error = ", r)
   }else {
