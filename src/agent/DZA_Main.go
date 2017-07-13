@@ -1,3 +1,5 @@
+// Package main is main package of dockzen agent.
+// Main function calls WI_init function in webinterface package.
 package main
 
 import (
