@@ -7,7 +7,7 @@ import (
   "os"
 )
 
-var SERVER_URL_FILE_PATH = "data"
+var SERVER_URL_FILE_PATH = "data/server_url"
 var SERVER_URL_FILE  = "server_url.json"
 var DEFAULT_SERVER_URL = "10.113.62.204:4000"
 

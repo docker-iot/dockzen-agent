@@ -83,7 +83,7 @@ func ws_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 		return nil, err
 	}
 
-	name, _ := getHardwareAddress()
+	name := getUniqueID()
 
 	err = wsReqeustConnection(ws, name)
 	if err != nil {
