@@ -10,6 +10,7 @@ import (
 
 var UNIQUE_ID_FILE_PATH = "data/unique_id"
 var UNIQUE_ID_FILE  = "unique_id.json"
+var DEFAULT_UNIQUE_ID = "default unique id"
 
 // Static getHardwareAddress get the unique HW id to distinguish in web dash board.
 // In temporarily, return mac address althouth it is not proper in bridge network mode.
@@ -49,9 +50,8 @@ func getHardwareAddress() (string, error) {
 	}
 }
 
-/*
-*	set the unique id to distinguish in web dash board.
-*/
+
+// set the unique id to distinguish in web dash board.
 func setUniqueID(data string) int {
 	var uniqueid string
 	uniqueid = data
@@ -84,36 +84,36 @@ func setUniqueID(data string) int {
 	return 0
 }
 
-/*
-*	get the unique id from unique_id.json file.
-*	if this file is not exist, then create default one.
-*/
+// get the unique id from unique_id.json file.
+// if this file is not exist, then create default one.
 func getUniqueID() string {
 
 	if _, err := os.Stat(UNIQUE_ID_FILE_PATH + "/" + UNIQUE_ID_FILE); os.IsNotExist(err) {
-		/* initial value for uniqueid is set hardware address */
+		// initial value for uniqueid is set hardware address
 		log.Printf("[%s] setUniqueID!!!", __FILE__)
 		var hw_addr string
 		hw_addr, err := getHardwareAddress()
 		if err != nil{
 			log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
-			return ""
+			return DEFAULT_UNIQUE_ID
 		}
-		setUniqueID(hw_addr)
+		if setUniqueID(hw_addr) != 0 {
+			return DEFAULT_UNIQUE_ID
+		}
 	}
 
 	data, err := ioutil.ReadFile(UNIQUE_ID_FILE_PATH + "/" + UNIQUE_ID_FILE)
 
 	if err != nil {
 		log.Printf("[%s] getUniqueID file error!", __FILE__)
-		return ""
+		return DEFAULT_UNIQUE_ID
 	}
 	var uniqueid string
 
 	err = json.Unmarshal([]byte(data), &uniqueid)
 	if err != nil {
 		log.Printf("[%s] getUniqueID data error!!!!", __FILE__)
-		return ""
+		return DEFAULT_UNIQUE_ID
 	}
 
 	log.Printf("[%s] getUniqueID = %s", __FILE__, uniqueid)
