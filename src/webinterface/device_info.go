@@ -8,9 +8,9 @@ import (
   "os"
 )
 
-var UNIQUE_ID_FILE_PATH = "data/unique_id"
-var UNIQUE_ID_FILE  = "unique_id.json"
-var DEFAULT_UNIQUE_ID = "default unique id"
+var UNIQUE_ID_FILE_PATH = "data"
+var UNIQUE_ID_FILE  = "device_uuid.json"
+const DEFAULT_UNIQUE_ID = "default device uuid"
 
 // Static getHardwareAddress get the unique HW id to distinguish in web dash board.
 // In temporarily, return mac address althouth it is not proper in bridge network mode.
