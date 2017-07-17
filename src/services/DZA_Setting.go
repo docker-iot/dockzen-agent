@@ -70,7 +70,7 @@ func GetServerURL() string {
     log.Printf("[%s] GetServerURL URL error!!!!", __FILE__)
     return ""
   }
-  
+
   log.Printf("[%s] Server URL = %s", __FILE__, config.Server_URL)
 
   return config.Server_URL

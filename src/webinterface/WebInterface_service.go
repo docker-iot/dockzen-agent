@@ -14,7 +14,7 @@ import (
 func ws_GetContainerLists_Res(send_info * ws_ContainerList_info, containersInfo dockzen_h.Containers_info) (err error){
   send_info.Cmd = "GetContainersInfo"
   send_info.ContainerCount = int(containersInfo.Count)
-  send_info.DeviceID, err = getHardwareAddress()
+  send_info.DeviceID = getUniqueID()
 
   if err != nil{
     log.Printf("[%s] HardwareAddress error = ", __FILE__, err)
@@ -72,7 +72,7 @@ func parseUpdateParam(msg string) (dockzen_h.ContainerUpdateInfo, error) {
 // If return value is null, it is not an error.
 func ws_UpdateImage_Res(send_Return *ws_ContainerUpdateReturn, updateReturn dockzen_h.ContainerUpdateRes) (err error){
   send_Return.Cmd = "UpdateImage"
-  send_Return.DeviceID, err = getHardwareAddress()
+  send_Return.DeviceID = getUniqueID()
   send_Return.UpdateState = updateReturn.Status
 
   if err != nil {
