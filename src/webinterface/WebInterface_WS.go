@@ -1,20 +1,20 @@
 package webinterface
 
 import (
-	"log"
+	"encoding/json"
 	"golang.org/x/net/websocket"
+	dockzen_h "include"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	set "services"
 	"strings"
-	"encoding/json"
 	"syscall"
 	"time"
-	set "services"
-	dockzen_h "include"
 )
 
 var wss_prefix = "ws://"
@@ -24,37 +24,37 @@ type Command struct {
 	Cmd string `json:"cmd"`
 }
 
-
 // SendChannel structure contains send channel information.
-type SendChannel struct{
+type SendChannel struct {
 	containers chan ws_ContainerList_info
 	updateinfo chan ws_ContainerUpdateReturn
 }
 
-
 // ReceiveChannel structure contains receive channel information.
-type ReceiveChannel struct{
+type ReceiveChannel struct {
 	containers chan bool
 	updateinfo chan dockzen_h.ContainerUpdateInfo
 }
 
 // Containers_Channel structure contains channel information.
-type Containers_Channel struct{
+type Containers_Channel struct {
 	receive chan bool
-	send chan ws_ContainerList_info
+	send    chan ws_ContainerList_info
 }
 
 // Containers_Channel structure contains channel information for update command.
-type Update_Channel struct{
+type Update_Channel struct {
 	receive chan dockzen_h.ContainerUpdateInfo
-	send chan ws_ContainerUpdateReturn
+	send    chan ws_ContainerUpdateReturn
 }
 
 var chSignal chan os.Signal
 var done chan bool
+var messagesCh chan string
+var g_ws *websocket.Conn
 
 // WI_init start ws_mainloop function.
-func WI_init(){
+func WI_init() {
 
 	log.Printf("[%s] Web connection start !!!\n", __FILE__)
 
@@ -78,7 +78,7 @@ func ws_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 	ws, err = wsProxyDial(wss_server_url, "tcp", wss_server_url)
 
 	if err != nil {
-		log.Printf("[%s] wsProxyDial : ",__FILE__, err)
+		log.Printf("[%s] wsProxyDial : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
@@ -95,13 +95,13 @@ func ws_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 }
 
-
 // Static ws_MessageLoop handles incomming message from the web server.
 // Param consists of message channel and receive channel.
-func ws_MessageLoop(messages chan string, receive_channel ReceiveChannel){
+func ws_MessageLoop(receive_channel ReceiveChannel) {
 
 	for {
-		msg := <-messages
+		// global channel
+		msg := <-messagesCh
 		log.Printf("[%s] MESSAGE !!! ", __FILE__)
 		rcv := Command{}
 		json.Unmarshal([]byte(msg), &rcv)
@@ -111,12 +111,12 @@ func ws_MessageLoop(messages chan string, receive_channel ReceiveChannel){
 		case "connected":
 			log.Printf("[%s] connected succefully~~", __FILE__)
 		case "GetContainersInfo":
-				receive_channel.containers <-true
+			receive_channel.containers <- true
 		case "UpdateImage":
 			log.Printf("[%s] command <UpdateImage>", __FILE__)
 			update_msg, r := parseUpdateParam(msg)
 			if r == nil {
-					receive_channel.updateinfo <- update_msg
+				receive_channel.updateinfo <- update_msg
 			} else {
 				log.Printf("[%s] UpdateImage message null !!!")
 			}
@@ -142,17 +142,17 @@ func ws_mainLoop() (err error) {
 		log.Printf("[%s] Server URL Error !! ", __FILE__)
 		return
 	}
+	// global web socket to user in different go routine.
+	g_ws, err = ws_Server_Connect(server_url)
 
-	ws, err := ws_Server_Connect(server_url)
-
-	messages := make(chan string)
-	go wsReceive(server_url, ws, messages)
+	messagesCh = make(chan string)
+	go wsReceive(server_url, g_ws)
 
 	var send_channel SendChannel
 	send_channel.containers = make(chan ws_ContainerList_info, 5)
 	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn, 5)
 
-	go ws_SendMsg(ws, send_channel)
+	go ws_SendMsg(send_channel)
 
 	var container_ch Containers_Channel
 	container_ch.receive = make(chan bool)
@@ -162,7 +162,7 @@ func ws_mainLoop() (err error) {
 	update_ch.receive = make(chan dockzen_h.ContainerUpdateInfo)
 	update_ch.send = send_channel.updateinfo
 
-	for i:= 0; i<3;i++{
+	for i := 0; i < 3; i++ {
 		go ws_GetContainerLists(container_ch)
 		go ws_UpdateImage(update_ch)
 	}
@@ -172,8 +172,8 @@ func ws_mainLoop() (err error) {
 	receive_channel.updateinfo = update_ch.receive
 	//go ws_UpdateImage(update_msg, send_channel.updateinfo)
 
-	defer ws.Close()
-	ws_MessageLoop(messages, receive_channel)
+	defer g_ws.Close()
+	ws_MessageLoop(receive_channel)
 
 	return nil
 }
@@ -181,21 +181,21 @@ func ws_mainLoop() (err error) {
 // Static ws_SendMsg sends message to web server.
 // Ws param is uniq id of web socket.
 // send_channel param is send channel.
-func ws_SendMsg(ws *websocket.Conn, send_channel SendChannel){
-	for{
-		select{
-		case send_msg:= <-send_channel.containers:
+func ws_SendMsg(send_channel SendChannel) {
+	for {
+		select {
+		case send_msg := <-send_channel.containers:
 			log.Printf("[%s] containers sendMessage= ", __FILE__, send_msg)
-			websocket.JSON.Send(ws, send_msg)
-		case send_msg:= <-send_channel.updateinfo:
+			websocket.JSON.Send(g_ws, send_msg)
+		case send_msg := <-send_channel.updateinfo:
 			log.Printf("[%s] update sendMessage=", __FILE__, send_msg)
 		}
 	}
 }
 
 // Static wsReceive receives message from web server.
-// Param consists of web server url, uniq id of web socket and message channel.
-func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err error) {
+// Param consists of web server url, uniq id of web socket.
+func wsReceive(server_url string, ws *websocket.Conn) (err error) {
 
 	var read_buf string
 
@@ -203,13 +203,13 @@ func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err
 		// recover from panic if one occured. Set err to nil otherwise.
 		for {
 			log.Printf("[%s] panic recovery !!!", __FILE__)
-			ws, err = wsProxyDial(server_url, "tcp", server_url)
-
+			g_ws, err = ws_Server_Connect(server_url)
 			if err != nil {
 				log.Printf("[%s] wsProxyDial : %s ", __FILE__, err)
 				time.Sleep(time.Second)
 				continue
 			}
+			go wsReceive(server_url, g_ws)
 			break
 		}
 	}()
@@ -222,7 +222,7 @@ func wsReceive(server_url string, ws *websocket.Conn, chan_msg chan string) (err
 			break
 		}
 		log.Printf("[%s] received: %s", __FILE__, read_buf)
-		chan_msg <- read_buf
+		messagesCh <- read_buf
 	}
 
 	return err
@@ -245,18 +245,18 @@ func wsReqeustConnection(ws *websocket.Conn, name string) (err error) {
 // This function returns unique id of web socket and result of function.
 func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) {
 
-	log.Printf("[%s] http_proxy {%s}\n", __FILE__, os.Getenv("HTTP_PROXY"))
+	log.Printf("[%s] http_proxy {%s}\n", __FILE__, os.Getenv("http_proxy"))
 
-	// comment out in case of testing without proxy
+	// comment out in case of testing without proxy(internal server)
 	if strings.Contains(url_, "10.113.") {
 		return websocket.Dial(url_, protocol, origin)
 	}
 
-	if os.Getenv("HTTP_PROXY") == "" {
+	if os.Getenv("http_proxy") == "" {
 		return websocket.Dial(url_, protocol, origin)
 	}
 
-	purl, err := url.Parse(os.Getenv("HTTP_PROXY"))
+	purl, err := url.Parse(os.Getenv("http_proxy"))
 	if err != nil {
 		log.Printf("[%s] Parse : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
@@ -268,7 +268,7 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 	log.Printf("====================================")
 	config, err := websocket.NewConfig(url_, origin)
 	if err != nil {
-		log.Printf("[%s] NewConfig : ", __FILE__,  err)
+		log.Printf("[%s] NewConfig : ", __FILE__, err)
 		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
