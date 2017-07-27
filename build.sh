@@ -9,7 +9,7 @@ set -e
 
 export BINARY_NAME="agent"	#fixed~~~~~
 
-export CONTAINER_VERSION=":v1.0"
+export CONTAINER_VERSION=":v1.1"
 
 if [ "$1" = "arm" ]; then
         echo "****************************"

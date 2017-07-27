@@ -1,8 +1,26 @@
+/**
+ * @file        dockzen_types.h
+ * @brief       Types of API for dockzen
+
+ * Copyright (c) 2017 Samsung Electronics Co., Ltd.
+ * This software is the confidential and proprietary information
+ * of Samsung Electronics, Inc. ("Confidential Information"). You
+ * shall not disclose such Confidential Information and shall use
+ * it only in accordance with the terms of the license agreement
+ * you entered into with Samsung.
+ */
+
 #ifndef __DOCKZEN_TYPES_H__
 #define __DOCKZEN_TYPES_H__
 
 #define MAX_CONTAINER_NUM	(10)
 
+/**
+ * @brief  This enum contains dockzen error information
+ *
+ * The dockzen_error_e indicates what error is happened
+ *
+ */
 typedef enum {
 	DOCKZEN_ERROR_NONE = 0,				/**< Successful */
 	DOCKZEN_ERROR_INVALID_PARAMETER,	/**< Invalid parameter */
@@ -11,6 +29,12 @@ typedef enum {
 	DOCKZEN_ERROR_NOT_SUPPORTED,		/**< Not supported  */
 } dockzen_error_e;
 
+/**
+ * @brief  This enum contains dockzen update state and error information
+ *
+ * The dockzen_update_e indicates what is dockzen update state.
+ *
+ */
 typedef enum {
 	DOCKZEN_UPDATE_STATE_STARTED = 0,
 	DOCKZEN_UPDATE_STATE_DOWNLOADING,
@@ -24,7 +48,11 @@ typedef enum {
 
 
 /**
- *  ContainersInfo type definition.
+ * @struct containers_info_s
+ * @brief  This struct contains containers information
+ *
+ * The containers_info_s struct encapsulate count and container information in the one data
+ *
  */
 typedef struct{
 	int count;		/**< the counts of containers info */
@@ -37,7 +65,11 @@ typedef struct{
 }containers_info_s;
 
 /**
- *  Containers update info type definition.
+ * @struct container_update_s
+ * @brief  This struct contains update parameters
+ *
+ * The container_update_s struct encapsulate container_name and image_name information in the one data
+ *
  */
 typedef struct{
 	char * container_name;
@@ -45,7 +77,11 @@ typedef struct{
 }container_update_s;
 
 /**
- *  Containers update response type definition.
+ * @struct container_update_res_s
+ * @brief  This struct contains update response
+ *
+ * The container_update_res_s struct encapsulate container_name, image_name_pre, image_name_new and status in the one data
+ *
  */
 typedef struct{
 	char * container_name;
@@ -55,7 +91,11 @@ typedef struct{
 }container_update_res_s;
 
 /**
- *  typedef container_update_cb
+ * @struct container_update_cb_s
+ * @brief  This struct contains update callback parameters
+ *
+ * The container_update_cb_s struct encapsulate conainer_name, image_name and status in the one data
+ *
  */
 typedef struct{
 	char * container_name;
@@ -65,4 +105,4 @@ typedef struct{
 
 typedef void (*container_update_cb) (container_update_cb_s *status, void * user_data);
 
-#endif
+#endif /* __DOCKZEN_TYPES_H__ */
