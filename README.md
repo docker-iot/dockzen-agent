@@ -52,7 +52,7 @@ or
 build for amd64<br>
 If it is done, Cotainer would be created<br>
 ```
-$ ./build.sh
+$ ./build.sh amd64
 ```
 
 #### build clean
@@ -62,18 +62,16 @@ $ make clean
 ```
 
 #### Proxy
-If you use proxy environment, you shoud add up the information in Dockerfile<br>
+If you use proxy environment, you shoud add up the information in Dockerfile_proxy in image folder<br>
 
 ```
 FROM scratch
 ADD agent /
 ADD ./data/server_url.json /data/
 ENV http_proxy=http://10.112.1.184:8080
+ENV https_proxy=http://10.112.1.184:8080
 CMD ["/agent"]
 ```
 
-If you run 'build.sh' or 'build.sh arm' it would be created container with the proxy environment.
-
-
-
+If you run 'build.sh amd64 proxy' or 'build.sh arm proxy' it would be created container with the proxy dockerfile.
 
