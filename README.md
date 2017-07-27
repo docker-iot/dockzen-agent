@@ -7,7 +7,6 @@ dockzen-agent is designed to manage for Tizen with Docker and provide services t
 To build the daemons, the following build system dependencies are required:
 
 * go 1.7.5 or above
-* gb tool due to library dependecy
 
 #### go 1.7.5
 
@@ -24,28 +23,32 @@ $ export PATH=$PATH:/usr/local/go/bin/
 $ export GOPATH=$(go env GOPATH)
 $ export PATH=$PATH:$(go env GOPATH)/bin
 ```
+#### Server URL
 
-#### gb
+Put your server url in ./data/server_url.json of agent and build.
+The url will be created and refered in HostOS
+'''
+/etc/dockzen/container/agent/config/server_url.json
+'''
 
-```
-$ go get github.com/constabulary/gb/...
-```
+### Device UUID
 
-If you install gb correctly, you can check whether it is installed or not using below command
-
-```
-$ gb info
-```
+You can set Device unique ID which will be created and refered in HostOS
+'''
+/etc/dockzen/container/agent/config/device_uuid.json
+''''
 
 #### build
 
 build for arm
+If it is done, Cotainer would be created
 ```
 $ ./build.sh arm
 ```
 or
 
 build for amd64
+If it is done, Cotainer would be created
 ```
 $ ./build.sh
 ```
@@ -55,8 +58,19 @@ $ ./build.sh
 ```
 $ make clean
 ```
-/bin/ folder is created and **two binaries** you can see in the folder.
-**dockzen-agentconn** is client which can receive a command from web server
-**dockzen-agent** is main daemon to check request form dockzen-agentconn and request it to dockzen-launcher
-If you build with arm architecture, the file name will be dockzen-agentconn-linux-arm and dockzen-agent-linux-arm.
+
+#### Proxy
+If you use proxy environment, you shoud add up the information in Dockerfile
+'''
+FROM scratch
+ADD agent /
+ADD ./data/server_url.json /data/
+ENV http_proxy=http://10.112.1.184:8080
+CMD ["/agent"]
+'''
+
+If you run 'build.sh' or 'build.sh arm' it would be created container with the proxy environment
+
+
+
 
