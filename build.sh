@@ -14,7 +14,7 @@ export BINARY_NAME="agent"	#fixed~~~~~
 
 export CONTAINER_VERSION=":v1.1"
 
-if [ $# -lt 1]; then
+if [ $# -lt 1 ]; then
 	echo "Usage: ./build.sh [arm|amd64]"
 	exit
 elif [ "$1" = "arm" ]; then
@@ -24,7 +24,7 @@ elif [ "$1" = "arm" ]; then
         export CGO_ENABLED=1
         export GOARCH=arm GOARM=7
         export CC="arm-linux-gnueabi-gcc"
-        export CONTAINER_NAME="dockzen-agent-arm"
+        export CONTAINER_NAME="armhf/dockzen-agent"
         export CGO_LDFLAGS="-L${PWD}/src/lib/install/arm/lib"
 elif [ "$1" = "amd64" ]; then
 		echo "****************************"
@@ -51,6 +51,7 @@ file ${BINARY_NAME}
 if [ "$2" = "proxy" ]; then
 	echo "******dockerfile_proxy******"
 	cp ${PWD}/image/Dockerfile_proxy Dockerfile
+	export CONTAINER_NAME=$CONTAINER_NAME-"proxy"
 else
 	echo "******dockefile*************"
 	pwd
