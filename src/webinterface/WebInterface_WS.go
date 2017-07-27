@@ -60,9 +60,8 @@ func WI_init() {
 
 	for {
 
-		go ws_mainLoop()
+		ws_mainLoop()
 
-		<-done
 		time.Sleep(time.Second)
 	}
 
@@ -79,7 +78,7 @@ func ws_Server_Connect(server_url string) (ws *websocket.Conn, err error) {
 
 	if err != nil {
 		log.Printf("[%s] wsProxyDial : ", __FILE__, err)
-		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
+		//syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
 
@@ -123,6 +122,7 @@ func ws_MessageLoop(receive_channel ReceiveChannel) {
 
 		default:
 			log.Printf("[%s] add command of {%s}", __FILE__, rcv.Cmd)
+			break;
 		}
 
 	}
@@ -144,38 +144,41 @@ func ws_mainLoop() (err error) {
 	}
 	// global web socket to user in different go routine.
 	g_ws, err = ws_Server_Connect(server_url)
+	if err == nil {
+		log.Printf("[%s] ws_Server_Connect done successfully~~~ ", __FILE__)
+		messagesCh = make(chan string)
+		go wsReceive(server_url, g_ws)
 
-	messagesCh = make(chan string)
-	go wsReceive(server_url, g_ws)
+		var send_channel SendChannel
+		send_channel.containers = make(chan ws_ContainerList_info, 5)
+		send_channel.updateinfo = make(chan ws_ContainerUpdateReturn, 5)
 
-	var send_channel SendChannel
-	send_channel.containers = make(chan ws_ContainerList_info, 5)
-	send_channel.updateinfo = make(chan ws_ContainerUpdateReturn, 5)
+		ws_SendMsg(send_channel)
 
-	go ws_SendMsg(send_channel)
+		var container_ch Containers_Channel
+		container_ch.receive = make(chan bool)
+		container_ch.send = send_channel.containers
 
-	var container_ch Containers_Channel
-	container_ch.receive = make(chan bool)
-	container_ch.send = send_channel.containers
+		var update_ch Update_Channel
+		update_ch.receive = make(chan dockzen_h.ContainerUpdateInfo)
+		update_ch.send = send_channel.updateinfo
 
-	var update_ch Update_Channel
-	update_ch.receive = make(chan dockzen_h.ContainerUpdateInfo)
-	update_ch.send = send_channel.updateinfo
+		for i := 0; i < 3; i++ {
+			go ws_GetContainerLists(container_ch)
+			go ws_UpdateImage(update_ch)
+		}
 
-	for i := 0; i < 3; i++ {
-		go ws_GetContainerLists(container_ch)
-		go ws_UpdateImage(update_ch)
+		var receive_channel ReceiveChannel
+		receive_channel.containers = container_ch.receive
+		receive_channel.updateinfo = update_ch.receive
+		//go ws_UpdateImage(update_msg, send_channel.updateinfo)
+
+		defer g_ws.Close()
+		ws_MessageLoop(receive_channel)
 	}
 
-	var receive_channel ReceiveChannel
-	receive_channel.containers = container_ch.receive
-	receive_channel.updateinfo = update_ch.receive
-	//go ws_UpdateImage(update_msg, send_channel.updateinfo)
-
-	defer g_ws.Close()
-	ws_MessageLoop(receive_channel)
-
-	return nil
+	log.Printf("[%s] return ", __FILE__)
+	return err
 }
 
 // Static ws_SendMsg sends message to web server.
@@ -198,7 +201,7 @@ func ws_SendMsg(send_channel SendChannel) {
 func wsReceive(server_url string, ws *websocket.Conn) (err error) {
 
 	var read_buf string
-
+/*
 	defer func() {
 		// recover from panic if one occured. Set err to nil otherwise.
 		for {
@@ -213,12 +216,12 @@ func wsReceive(server_url string, ws *websocket.Conn) (err error) {
 			break
 		}
 	}()
-
+*/
 	for {
 		err = websocket.Message.Receive(ws, &read_buf)
 		if err != nil {
 			log.Printf("[%s] wsReceive : %s", __FILE__, err)
-			syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
+			messagesCh <- "err"
 			break
 		}
 		log.Printf("[%s] received: %s", __FILE__, read_buf)
@@ -283,14 +286,19 @@ func wsProxyDial(url_, protocol, origin string) (ws *websocket.Conn, err error) 
 	client, err := wsHttpConnect(purl.Host, url_)
 	if err != nil {
 		log.Printf("[%s] HttpConnect : ", __FILE__, err)
-		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
+		//syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
 
 	log.Printf("====================================")
 	log.Printf("    websocket.NewClient")
 	log.Printf("====================================")
-	return websocket.NewClient(config, client)
+
+	ret_ws, err := websocket.NewClient(config, client);
+	if err != nil {
+		log.Printf("[%s] NewClient ERR : ", __FILE__, err)
+	}
+	return ret_ws, err
 }
 
 // Static wsHttpConnect connect to web server.
@@ -328,7 +336,7 @@ func wsHttpConnect(proxy, url_ string) (io.ReadWriteCloser, error) {
 	resp, err := proxy_http_conn.Do(&req)
 	if err != nil && err != httputil.ErrPersistEOF {
 		log.Printf("[%s] ErrPersistEOF : ", __FILE__, err)
-		syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
+		//syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
 		return nil, err
 	}
 	log.Printf("[%s] proxy_http_conn<resp> =", __FILE__, (resp))
